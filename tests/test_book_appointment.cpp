@@ -302,6 +302,7 @@ int main() {
   {
     hms::FileManager sysFm(testPatientCsv, testDoctorCsv, testApptCsv);
     hms::HospitalSystem sys(sysFm);
+    const std::string contentBefore = readFile(testApptCsv);
     const int rowsBefore = countDataRows(testApptCsv);
 
     std::string apptId;
@@ -310,6 +311,7 @@ int main() {
     check("TC-APT-02: Unknown patient rejected", !ok);
     check("TC-APT-02: Error message is 'Patient not found'", error == "Patient not found");
     check("TC-APT-02: CSV row count unchanged", countDataRows(testApptCsv) == rowsBefore);
+    check("TC-APT-02: CSV file contents unchanged", readFile(testApptCsv) == contentBefore);
     check("TC-APT-02: No appointment ID generated", apptId.empty());
   }
 
@@ -317,6 +319,7 @@ int main() {
   {
     hms::FileManager sysFm(testPatientCsv, testDoctorCsv, testApptCsv);
     hms::HospitalSystem sys(sysFm);
+    const std::string contentBefore = readFile(testApptCsv);
     const int rowsBefore = countDataRows(testApptCsv);
 
     std::string apptId;
@@ -325,6 +328,8 @@ int main() {
     check("TC-APT-03: Unknown doctor rejected", !ok);
     check("TC-APT-03: Error message is 'Doctor not found'", error == "Doctor not found");
     check("TC-APT-03: CSV row count unchanged", countDataRows(testApptCsv) == rowsBefore);
+    check("TC-APT-03: CSV file contents unchanged", readFile(testApptCsv) == contentBefore);
+    check("TC-APT-03: No appointment ID generated", apptId.empty());
   }
 
   // Invalid Date / Time Rejection (HMS-F-018, TC-APT-04)
@@ -507,6 +512,8 @@ int main() {
   {
     hms::FileManager sysFm(testPatientCsv, testDoctorCsv, testApptCsv);
     hms::HospitalSystem sys(sysFm);
+    const std::string contentBefore = readFile(testApptCsv);
+    const int rowsBefore = countDataRows(testApptCsv);
 
     std::string inputData =
         "P888\n"
@@ -528,6 +535,39 @@ int main() {
     std::string output = outStream.str();
     check("Console displays 'Patient not found'",
           output.find("Patient not found") != std::string::npos);
+    check("Console unknown patient: CSV row count unchanged", countDataRows(testApptCsv) == rowsBefore);
+    check("Console unknown patient: CSV file contents unchanged", readFile(testApptCsv) == contentBefore);
+  }
+
+  // Interactive booking with unknown doctor rejection
+  {
+    hms::FileManager sysFm(testPatientCsv, testDoctorCsv, testApptCsv);
+    hms::HospitalSystem sys(sysFm);
+    const std::string contentBefore = readFile(testApptCsv);
+    const int rowsBefore = countDataRows(testApptCsv);
+
+    std::string inputData =
+        "P001\n"
+        "D888\n"
+        "2026-10-25\n"
+        "16:00\n";
+
+    std::istringstream inStream(inputData);
+    std::ostringstream outStream;
+
+    auto *cinBuf = std::cin.rdbuf(inStream.rdbuf());
+    auto *coutBuf = std::cout.rdbuf(outStream.rdbuf());
+
+    sys.bookAppointment();
+
+    std::cin.rdbuf(cinBuf);
+    std::cout.rdbuf(coutBuf);
+
+    std::string output = outStream.str();
+    check("Console displays 'Doctor not found'",
+          output.find("Doctor not found") != std::string::npos);
+    check("Console unknown doctor: CSV row count unchanged", countDataRows(testApptCsv) == rowsBefore);
+    check("Console unknown doctor: CSV file contents unchanged", readFile(testApptCsv) == contentBefore);
   }
 
   // Interactive booking with conflict rejection

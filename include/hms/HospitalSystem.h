@@ -24,6 +24,7 @@ public:
 
   void run();
   void addDoctor();
+  void searchPatients();
 
   // Interactive booking and view workflows
   void bookAppointment();
