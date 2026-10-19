@@ -1,3 +1,4 @@
+
 #include "hms/HospitalSystem.h"
 
 #include <algorithm>
@@ -82,6 +83,8 @@ void HospitalSystem::run() {
               << "1. Register patient\n"
               << "2. Add doctor\n"
               << "3. Search patients\n"
+              << "4. View patient details\n"
+              << "5. List all patients\n"
               << "0. Exit\n"
               << "Enter your choice: ";
 
@@ -105,8 +108,12 @@ void HospitalSystem::run() {
       addDoctor();
     } else if (choice == "3") {
       searchPatients();
+    } else if (choice == "4") {
+      viewPatientDetails();
+    } else if (choice == "5") {
+      listPatients();
     } else {
-      std::cout << "Invalid choice. Enter 1, 2, 3, or 0.\n";
+      std::cout << "Invalid choice. Enter 1, 2, 3, 4, 5, or 0.\n";
     }
   }
 }
@@ -154,7 +161,7 @@ void HospitalSystem::registerPatient() {
 
   medicalHistory = trim(medicalHistory);
 
-  // Construct the patient; constructor normalizes ID and gender to uppercase.
+  // The Patient constructor normalizes the ID and gender.
   const Patient patient(id, name, age, gender, contactNumber, address,
                         medicalHistory);
 
@@ -256,6 +263,49 @@ void HospitalSystem::searchPatients() {
 
   if (!found) {
     std::cout << "No matching patient found\n";
+  }
+}
+
+void HospitalSystem::viewPatientDetails() {
+  std::cout << "\n--- View Patient Details ---\n";
+
+  std::string patientId;
+  if (!readRequiredField("Enter patient ID: ", patientId)) {
+    return;
+  }
+
+  const std::vector<Patient> patients = fileManager_.loadPatients();
+  const std::string normalizedId = toLower(patientId);
+
+  for (const Patient &patient : patients) {
+    if (toLower(patient.getId()) == normalizedId) {
+      displayPatientDetails(patient);
+      return;
+    }
+  }
+
+  std::cout << "No matching patient found\n";
+}
+
+void HospitalSystem::listPatients() {
+  std::cout << "\n--- Patient List ---\n";
+
+  const std::vector<Patient> patients = fileManager_.loadPatients();
+
+  if (patients.empty()) {
+    std::cout << "No patients registered\n";
+    return;
+  }
+
+  std::cout << "Patient ID | Name | Age | Gender | Contact number\n"
+            << "---------------------------------------------------\n";
+
+  for (const Patient &patient : patients) {
+    std::cout << patient.getId() << " | "
+              << patient.getName() << " | "
+              << patient.getAge() << " | "
+              << patient.getGender() << " | "
+              << patient.getContactNumber() << '\n';
   }
 }
 

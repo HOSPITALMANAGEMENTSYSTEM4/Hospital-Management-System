@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "hms/FileManager.h"
@@ -15,6 +16,8 @@ public:
 
 private:
   void registerPatient();
+  void viewPatientDetails();
+  void listPatients();
 
   FileManager fileManager_;
 };
