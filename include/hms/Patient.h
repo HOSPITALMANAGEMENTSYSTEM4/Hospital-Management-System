@@ -1,4 +1,4 @@
-﻿
+
 #pragma once
 
 #include <string>
@@ -15,7 +15,15 @@ public:
             std::string address,
             std::string medicalHistory = "");
 
+    // Returns true only when every field satisfies VR-01 through VR-07 and
+    // VR-14.  Used by FileManager::savePatient() as a gate before persistence.
     bool isValid() const;
+
+    // Validates each field in turn.  On the first failure, writes a
+    // human-readable message describing the field and the violated rule into
+    // `errorMessage` and returns false.  Returns true and leaves `errorMessage`
+    // unchanged when all fields are valid.
+    bool validate(std::string &errorMessage) const;
 
     const std::string& getId() const;
     const std::string& getName() const;
@@ -35,4 +43,4 @@ private:
     std::string medicalHistory_;
 };
 
-}
+} // namespace hms

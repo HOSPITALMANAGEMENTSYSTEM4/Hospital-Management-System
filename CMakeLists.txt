@@ -36,3 +36,15 @@ add_executable(hms_tests
 target_include_directories(hms_tests PRIVATE include)
 
 add_test(NAME TC-PAT-02_DuplicatePatientId COMMAND hms_tests)
+
+add_executable(hms_validate_tests
+    tests/test_validate_patient_fields.cpp
+    src/Patient.cpp
+    src/FileManager.cpp
+    src/Doctor.cpp
+    src/Appointment.cpp
+)
+
+target_include_directories(hms_validate_tests PRIVATE include)
+
+add_test(NAME TC-PAT-03_ValidatePatientFields COMMAND hms_validate_tests)
