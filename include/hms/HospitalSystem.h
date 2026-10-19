@@ -14,6 +14,7 @@ public:
 
 private:
   void registerPatient();
+  void searchPatients();
   void viewPatientDetails();
   void listPatients();
 
