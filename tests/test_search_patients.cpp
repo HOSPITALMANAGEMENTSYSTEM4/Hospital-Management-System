@@ -108,6 +108,37 @@ void testCaseInsensitivePartialName() {
     std::filesystem::remove(path);
 }
 
+void testSearchTrimsWhitespace() {
+    const std::string path = "build/test_search_whitespace.csv";
+
+    std::filesystem::remove(path);
+    writeTestPatients(path);
+
+    const std::string idOutput = runSearch(path, "  P102  ");
+
+    check(
+        idOutput.find("Anita Rao") != std::string::npos,
+        "Patient ID search trims leading and trailing spaces");
+
+    check(
+        idOutput.find("Anita Sharma") == std::string::npos &&
+        idOutput.find("Rahul Kumar") == std::string::npos,
+        "Whitespace-padded exact ID returns only the matching patient");
+
+    const std::string nameOutput = runSearch(path, "  aNiTa  ");
+
+    check(
+        nameOutput.find("Anita Sharma") != std::string::npos &&
+        nameOutput.find("Anita Rao") != std::string::npos,
+        "Whitespace-padded partial name search returns all case-insensitive matches");
+
+    check(
+        nameOutput.find("Rahul Kumar") == std::string::npos,
+        "Whitespace-padded name search excludes non-matching patients");
+
+    std::filesystem::remove(path);
+}
+
 void testNoMatchingPatient() {
     const std::string path = "build/test_search_unknown.csv";
     prepareTestFile(path);
@@ -145,6 +176,7 @@ int main() {
     try {
         testExactPatientId();
         testCaseInsensitivePartialName();
+        testSearchTrimsWhitespace();
         testNoMatchingPatient();
         testWhitespaceAroundQuery();
     } catch (const std::exception &error) {
