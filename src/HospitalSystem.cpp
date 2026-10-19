@@ -21,6 +21,7 @@ std::string trim(const std::string &value) {
   return value.substr(first, last - first + 1);
 }
 
+// VR-03: age 0-120 inclusive.
 bool parseAge(const std::string &input, int &age) {
   std::istringstream stream(input);
   char extra = '\0';
@@ -29,7 +30,7 @@ bool parseAge(const std::string &input, int &age) {
     return false;
   }
 
-  return age >= 1 && age <= 130;
+  return age >= 0 && age <= 120;
 }
 
 bool readRequiredField(const std::string &prompt, std::string &value) {
@@ -96,7 +97,7 @@ void HospitalSystem::registerPatient() {
     return;
   }
 
-  std::cout << "Age (1-130): ";
+  std::cout << "Age (0-120): ";
 
   if (!std::getline(std::cin, ageInput)) {
     return;
@@ -105,11 +106,11 @@ void HospitalSystem::registerPatient() {
   int age = 0;
 
   if (!parseAge(trim(ageInput), age)) {
-    std::cout << "Invalid age. Enter a whole number from 1 to 130.\n";
+    std::cout << "Age: must be a whole number from 0 to 120.\n";
     return;
   }
 
-  if (!readRequiredField("Gender: ", gender) ||
+  if (!readRequiredField("Gender (M/F/O): ", gender) ||
       !readRequiredField("Contact number: ", contactNumber) ||
       !readRequiredField("Address: ", address)) {
     return;
@@ -123,14 +124,18 @@ void HospitalSystem::registerPatient() {
 
   medicalHistory = trim(medicalHistory);
 
+  // Construct the patient; constructor normalizes ID and gender to uppercase.
   const Patient patient(id, name, age, gender, contactNumber, address,
                         medicalHistory);
 
-  if (!patient.isValid()) {
-    std::cout << "Registration rejected: patient details are invalid.\n";
+  // Validate with field-specific error reporting before the duplicate check.
+  std::string validationError;
+  if (!patient.validate(validationError)) {
+    std::cout << validationError << '\n';
     return;
   }
 
+  // Issue #2: case-insensitive duplicate detection (ID already uppercased).
   if (fileManager_.patientIdExists(patient.getId())) {
     std::cout << "Patient ID already exists\n";
     return;

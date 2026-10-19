@@ -98,7 +98,7 @@ bool parseAge(const std::string &value, int &age) {
     return false;
   }
 
-  return age >= 1 && age <= 130;
+  return age >= 0 && age <= 120;
 }
 
 std::string toLower(const std::string &s) {
@@ -161,8 +161,9 @@ bool FileManager::patientIdExists(const std::string &patientId) const {
 
 bool FileManager::savePatient(const Patient &patient,
                               std::string &errorMessage) const {
-  if (!patient.isValid()) {
-    errorMessage = "Patient details are invalid.";
+  std::string validationError;
+  if (!patient.validate(validationError)) {
+    errorMessage = validationError;
     return false;
   }
 

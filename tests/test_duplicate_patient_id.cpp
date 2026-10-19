@@ -69,7 +69,7 @@ void removeFile(const std::string &path) { std::remove(path.c_str()); }
 
 // Build a valid Patient object.
 hms::Patient makePatient(const std::string &id) {
-  return hms::Patient(id, "Test Name", 30, "M", "555-0100", "1 Test St");
+  return hms::Patient(id, "Test Name", 30, "M", "5550100100", "1 Test St");
 }
 
 } // namespace
