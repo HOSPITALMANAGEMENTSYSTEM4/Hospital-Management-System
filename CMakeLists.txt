@@ -12,6 +12,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if(MINGW OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND WIN32))
+    add_link_options(-static-libgcc -static-libstdc++)
+endif()
+
 add_executable(hms
     src/main.cpp
     src/Patient.cpp
@@ -92,7 +96,22 @@ add_test(
     COMMAND hms_duplicate_doctor_tests
 )
 
-# Doctor: field validation
+add_executable(hms_duplicate_doctor_tests
+    tests/test_duplicate_doctor_id.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+    src/Appointment.cpp
+)
+
+target_include_directories(hms_duplicate_doctor_tests PRIVATE include)
+
+add_test(
+    NAME TC-DOC-02_RejectDuplicateDoctorId
+    COMMAND hms_duplicate_doctor_tests
+)
+
 add_executable(hms_validate_doctor_tests
     tests/test_validate_doctor_fields.cpp
     src/Doctor.cpp
@@ -108,7 +127,6 @@ add_test(
     COMMAND hms_validate_doctor_tests
 )
 
-# Patient: search
 add_executable(hms_search_patients_tests
     tests/test_search_patients.cpp
     src/Patient.cpp
@@ -120,23 +138,20 @@ add_executable(hms_search_patients_tests
 
 target_include_directories(hms_search_patients_tests PRIVATE include)
 
-add_test(
-    NAME TC-PAT-04_SearchPatients
-    COMMAND hms_search_patients_tests
-)
-# Patient: view details and list patients
-add_executable(hms_patient_details_list_tests
-    tests/test_patient_details_and_list.cpp
-    src/Patient.cpp
-    src/Doctor.cpp
+add_test(NAME TC-PAT-04_SearchPatients COMMAND hms_search_patients_tests)
+
+add_executable(hms_book_appointment_tests
+    tests/test_book_appointment.cpp
     src/Appointment.cpp
+    src/Doctor.cpp
     src/FileManager.cpp
     src/HospitalSystem.cpp
+    src/Patient.cpp
 )
 
-target_include_directories(hms_patient_details_list_tests PRIVATE include)
+target_include_directories(hms_book_appointment_tests PRIVATE include)
 
 add_test(
-    NAME TC-PAT-05_ViewDetailsAndList
-    COMMAND hms_patient_details_list_tests
+    NAME TC-APT-01_BookAppointment
+    COMMAND hms_book_appointment_tests
 )
