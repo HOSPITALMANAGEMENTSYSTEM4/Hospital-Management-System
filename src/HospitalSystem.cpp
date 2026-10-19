@@ -24,10 +24,18 @@ std::string trim(const std::string &value) {
   return value.substr(first, last - first + 1);
 }
 
+std::string toUpper(std::string value) {
+  std::transform(value.begin(), value.end(), value.begin(),
+                 [](unsigned char c) {
+                   return static_cast<char>(std::toupper(c));
+                 });
+  return value;
+}
+
 std::string toLower(std::string value) {
   std::transform(value.begin(), value.end(), value.begin(),
-                 [](unsigned char ch) {
-                   return static_cast<char>(std::tolower(ch));
+                 [](unsigned char c) {
+                   return static_cast<char>(std::tolower(c));
                  });
   return value;
 }
@@ -161,16 +169,18 @@ void HospitalSystem::registerPatient() {
 
   medicalHistory = trim(medicalHistory);
 
-  // The Patient constructor normalizes the ID and gender.
+  // The Patient constructor normalizes the ID and gender to uppercase.
   const Patient patient(id, name, age, gender, contactNumber, address,
                         medicalHistory);
 
   std::string validationError;
+
   if (!patient.validate(validationError)) {
     std::cout << validationError << '\n';
     return;
   }
 
+  // Case-insensitive duplicate detection.
   if (fileManager_.patientIdExists(patient.getId())) {
     std::cout << "Patient ID already exists\n";
     return;
@@ -187,54 +197,11 @@ void HospitalSystem::registerPatient() {
             << "Patient ID: " << patient.getId() << '\n';
 }
 
-void HospitalSystem::addDoctor() {
-  std::cout << "\n--- Add Doctor ---\n";
-
-  std::string id;
-  std::string name;
-  std::string specialization;
-  std::string department;
-  std::string contactNumber;
-  std::string availability;
-
-  if (!readRequiredField("Doctor ID: ", id) ||
-      !readRequiredField("Full name: ", name) ||
-      !readRequiredField("Specialization: ", specialization) ||
-      !readRequiredField("Department: ", department) ||
-      !readRequiredField("Contact number: ", contactNumber) ||
-      !readRequiredField("Availability: ", availability)) {
-    return;
-  }
-
-  const Doctor doctor(id, name, specialization, department, contactNumber,
-                      availability);
-
-  std::string validationError;
-  if (!doctor.validate(validationError)) {
-    std::cout << validationError << '\n';
-    return;
-  }
-
-  if (fileManager_.doctorIdExists(doctor.getId())) {
-    std::cout << "Doctor ID already exists\n";
-    return;
-  }
-
-  std::string errorMessage;
-
-  if (!fileManager_.saveDoctor(doctor, errorMessage)) {
-    std::cout << "Addition failed: " << errorMessage << '\n';
-    return;
-  }
-
-  std::cout << "\nDoctor added successfully.\n"
-            << "Doctor ID: " << doctor.getId() << '\n';
-}
-
 void HospitalSystem::searchPatients() {
   std::cout << "\n--- Search Patients ---\n";
 
   std::string query;
+
   if (!readRequiredField("Enter patient ID or name: ", query)) {
     return;
   }
@@ -270,15 +237,16 @@ void HospitalSystem::viewPatientDetails() {
   std::cout << "\n--- View Patient Details ---\n";
 
   std::string patientId;
+
   if (!readRequiredField("Enter patient ID: ", patientId)) {
     return;
   }
 
   const std::vector<Patient> patients = fileManager_.loadPatients();
-  const std::string normalizedId = toLower(patientId);
+  const std::string searchId = toUpper(patientId);
 
   for (const Patient &patient : patients) {
-    if (toLower(patient.getId()) == normalizedId) {
+    if (toUpper(patient.getId()) == searchId) {
       displayPatientDetails(patient);
       return;
     }
@@ -307,6 +275,51 @@ void HospitalSystem::listPatients() {
               << patient.getGender() << " | "
               << patient.getContactNumber() << '\n';
   }
+}
+
+void HospitalSystem::addDoctor() {
+  std::cout << "\n--- Add Doctor ---\n";
+
+  std::string id;
+  std::string name;
+  std::string specialization;
+  std::string department;
+  std::string contactNumber;
+  std::string availability;
+
+  if (!readRequiredField("Doctor ID: ", id) ||
+      !readRequiredField("Full name: ", name) ||
+      !readRequiredField("Specialization: ", specialization) ||
+      !readRequiredField("Department: ", department) ||
+      !readRequiredField("Contact number: ", contactNumber) ||
+      !readRequiredField("Availability: ", availability)) {
+    return;
+  }
+
+  const Doctor doctor(id, name, specialization, department, contactNumber,
+                      availability);
+
+  std::string validationError;
+
+  if (!doctor.validate(validationError)) {
+    std::cout << validationError << '\n';
+    return;
+  }
+
+  if (fileManager_.doctorIdExists(doctor.getId())) {
+    std::cout << "Doctor ID already exists\n";
+    return;
+  }
+
+  std::string errorMessage;
+
+  if (!fileManager_.saveDoctor(doctor, errorMessage)) {
+    std::cout << "Addition failed: " << errorMessage << '\n';
+    return;
+  }
+
+  std::cout << "\nDoctor added successfully.\n"
+            << "Doctor ID: " << doctor.getId() << '\n';
 }
 
 } // namespace hms

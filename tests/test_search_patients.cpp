@@ -24,8 +24,7 @@ void check(bool condition, const std::string &message) {
 }
 
 void writeTestPatients(const std::string &path) {
-    hms::FileManager fileManager(
-        path, "build/test_search_doctors.csv");
+    hms::FileManager fileManager(path, "build/test_search_doctors.csv");
 
     const std::vector<hms::Patient> patients = {
         {"P101", "Anita Sharma", 21, "F", "9876543210",
@@ -49,17 +48,17 @@ void writeTestPatients(const std::string &path) {
 std::string runSearch(const std::string &path,
                       const std::string &query) {
     hms::HospitalSystem system{
-        hms::FileManager(
-            path, "build/test_search_doctors.csv")};
+        hms::FileManager(path, "build/test_search_doctors.csv")};
 
-    std::istringstream input(query + "\n");
+    // Select menu option 3, enter the search query, then exit.
+    std::istringstream input("3\n" + query + "\n0\n");
     std::ostringstream output;
 
     auto *oldInput = std::cin.rdbuf(input.rdbuf());
     auto *oldOutput = std::cout.rdbuf(output.rdbuf());
 
     try {
-        system.searchPatients();
+        system.run();
     } catch (...) {
         std::cin.rdbuf(oldInput);
         std::cout.rdbuf(oldOutput);
@@ -72,42 +71,39 @@ std::string runSearch(const std::string &path,
     return output.str();
 }
 
-void testExactPatientId() {
-    const std::string path = "build/test_search_exact.csv";
-
+void prepareTestFile(const std::string &path) {
     std::filesystem::remove(path);
     writeTestPatients(path);
+}
+
+void testExactPatientId() {
+    const std::string path = "build/test_search_exact.csv";
+    prepareTestFile(path);
 
     const std::string output = runSearch(path, "P102");
 
-    check(
-        output.find("Anita Rao") != std::string::npos,
-        "Exact patient ID displays the matching patient");
+    check(output.find("Anita Rao") != std::string::npos,
+          "Exact patient ID displays the matching patient");
 
-    check(
-        output.find("Anita Sharma") == std::string::npos &&
-        output.find("Rahul Kumar") == std::string::npos,
-        "Exact patient ID displays only one patient");
+    check(output.find("Anita Sharma") == std::string::npos &&
+          output.find("Rahul Kumar") == std::string::npos,
+          "Exact patient ID displays only one patient");
 
     std::filesystem::remove(path);
 }
 
 void testCaseInsensitivePartialName() {
     const std::string path = "build/test_search_partial.csv";
-
-    std::filesystem::remove(path);
-    writeTestPatients(path);
+    prepareTestFile(path);
 
     const std::string output = runSearch(path, "aNiTa");
 
-    check(
-        output.find("Anita Sharma") != std::string::npos &&
-        output.find("Anita Rao") != std::string::npos,
-        "Partial name search is case-insensitive and returns all matches");
+    check(output.find("Anita Sharma") != std::string::npos &&
+          output.find("Anita Rao") != std::string::npos,
+          "Case-insensitive partial name search returns all matches");
 
-    check(
-        output.find("Rahul Kumar") == std::string::npos,
-        "Partial name search excludes non-matching patients");
+    check(output.find("Rahul Kumar") == std::string::npos,
+          "Partial name search excludes non-matching patients");
 
     std::filesystem::remove(path);
 }
@@ -145,22 +141,29 @@ void testSearchTrimsWhitespace() {
 
 void testNoMatchingPatient() {
     const std::string path = "build/test_search_unknown.csv";
+    prepareTestFile(path);
+
+    const std::string idOutput = runSearch(path, "P999");
+
+    check(idOutput.find("No matching patient found") != std::string::npos,
+          "Unknown patient ID displays the no-match message");
+
+    const std::string nameOutput = runSearch(path, "Unknown Person");
+
+    check(nameOutput.find("No matching patient found") != std::string::npos,
+          "Unknown patient name displays the no-match message");
 
     std::filesystem::remove(path);
-    writeTestPatients(path);
+}
 
-    const std::string output = runSearch(path, "P999");
+void testWhitespaceAroundQuery() {
+    const std::string path = "build/test_search_whitespace.csv";
+    prepareTestFile(path);
 
-    check(
-        output.find("No matching patient found") != std::string::npos,
-        "Unknown patient ID displays the no-match message");
+    const std::string output = runSearch(path, "  P102  ");
 
-    const std::string nameOutput =
-        runSearch(path, "Unknown Person");
-
-    check(
-        nameOutput.find("No matching patient found") != std::string::npos,
-        "Unknown patient name displays the no-match message");
+    check(output.find("Anita Rao") != std::string::npos,
+          "Leading and trailing spaces are trimmed from the search query");
 
     std::filesystem::remove(path);
 }
@@ -175,6 +178,7 @@ int main() {
         testCaseInsensitivePartialName();
         testSearchTrimsWhitespace();
         testNoMatchingPatient();
+        testWhitespaceAroundQuery();
     } catch (const std::exception &error) {
         std::cerr << "[ERROR] " << error.what() << '\n';
         return 1;
