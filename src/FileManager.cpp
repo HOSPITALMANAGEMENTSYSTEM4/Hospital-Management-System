@@ -12,6 +12,9 @@ namespace {
 const char *CSV_HEADER =
     "patient_id,name,age,gender,contact_number,address,medical_history\n";
 
+const char *DOCTOR_CSV_HEADER =
+    "doctor_id,name,specialization,department,contact_number,availability\n";
+
 std::string escapeCsv(const std::string &value) {
   if (value.find_first_of(",\"\r\n") == std::string::npos) {
     return value;
@@ -110,8 +113,17 @@ std::string toLower(const std::string &s) {
 
 } // namespace
 
-FileManager::FileManager(std::string patientFilePath)
-    : patientFilePath_(std::move(patientFilePath)) {}
+FileManager::FileManager(std::string patientFilePath, std::string doctorFilePath)
+    : patientFilePath_(std::move(patientFilePath)),
+      doctorFilePath_(std::move(doctorFilePath)) {}
+
+const std::string &FileManager::getPatientFilePath() const {
+  return patientFilePath_;
+}
+
+const std::string &FileManager::getDoctorFilePath() const {
+  return doctorFilePath_;
+}
 
 std::vector<Patient> FileManager::loadPatients() const {
   std::vector<Patient> patients;
@@ -220,6 +232,118 @@ bool FileManager::savePatient(const Patient &patient,
 
   if (!output) {
     errorMessage = "Writing the patient record failed.";
+    return false;
+  }
+
+  return true;
+}
+
+std::vector<Doctor> FileManager::loadDoctors() const {
+  std::vector<Doctor> doctors;
+  std::ifstream input(doctorFilePath_);
+
+  if (!input) {
+    return doctors;
+  }
+
+  std::ostringstream buffer;
+  buffer << input.rdbuf();
+
+  const auto records = parseCsv(buffer.str());
+
+  for (const auto &row : records) {
+    if (row.size() != 6) {
+      continue;
+    }
+
+    const std::string firstCol = toLower(row[0]);
+    if (firstCol == "doctor_id" || firstCol == "doctorid") {
+      continue;
+    }
+
+    Doctor doctor(row[0], row[1], row[2], row[3], row[4], row[5]);
+
+    if (doctor.isValid()) {
+      doctors.push_back(std::move(doctor));
+    }
+  }
+
+  return doctors;
+}
+
+bool FileManager::doctorIdExists(const std::string &doctorId) const {
+  const std::string needle = toLower(doctorId);
+
+  for (const Doctor &doctor : loadDoctors()) {
+    if (toLower(doctor.getId()) == needle) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool FileManager::saveDoctor(const Doctor &doctor,
+                             std::string &errorMessage) const {
+  std::string validationError;
+  if (!doctor.validate(validationError)) {
+    errorMessage = validationError;
+    return false;
+  }
+
+  if (doctorIdExists(doctor.getId())) {
+    errorMessage = "A doctor with this ID already exists.";
+    return false;
+  }
+
+  const std::filesystem::path filePath(doctorFilePath_);
+  const std::filesystem::path parent = filePath.parent_path();
+
+  std::error_code filesystemError;
+
+  if (!parent.empty()) {
+    std::filesystem::create_directories(parent, filesystemError);
+
+    if (filesystemError) {
+      errorMessage =
+          "Could not create the data directory: " + filesystemError.message();
+      return false;
+    }
+  }
+
+  bool needsHeader = true;
+
+  {
+    std::ifstream existing(doctorFilePath_, std::ios::binary);
+
+    if (existing) {
+      existing.seekg(0, std::ios::end);
+      needsHeader = existing.tellg() == std::streampos(0);
+    }
+  }
+
+  std::ofstream output(doctorFilePath_,
+                       std::ios::out | std::ios::app | std::ios::binary);
+
+  if (!output) {
+    errorMessage = "Could not open the doctor CSV file for writing.";
+    return false;
+  }
+
+  if (needsHeader) {
+    output << DOCTOR_CSV_HEADER;
+  }
+
+  output << escapeCsv(doctor.getId()) << ',' << escapeCsv(doctor.getName())
+         << ',' << escapeCsv(doctor.getSpecialization()) << ','
+         << escapeCsv(doctor.getDepartment()) << ','
+         << escapeCsv(doctor.getContactNumber()) << ','
+         << escapeCsv(doctor.getAvailability()) << '\n';
+
+  output.flush();
+
+  if (!output) {
+    errorMessage = "Writing the doctor record failed.";
     return false;
   }
 

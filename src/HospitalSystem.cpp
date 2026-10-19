@@ -52,10 +52,14 @@ bool readRequiredField(const std::string &prompt, std::string &value) {
 
 } // namespace
 
+HospitalSystem::HospitalSystem(FileManager fileManager)
+    : fileManager_(std::move(fileManager)) {}
+
 void HospitalSystem::run() {
   while (true) {
     std::cout << "\n=== Hospital Management System ===\n"
               << "1. Register patient\n"
+              << "2. Add doctor\n"
               << "0. Exit\n"
               << "Enter your choice: ";
 
@@ -75,8 +79,10 @@ void HospitalSystem::run() {
 
     if (choice == "1") {
       registerPatient();
+    } else if (choice == "2") {
+      addDoctor();
     } else {
-      std::cout << "Invalid choice. Enter 1 or 0.\n";
+      std::cout << "Invalid choice. Enter 1, 2, or 0.\n";
     }
   }
 }
@@ -150,6 +156,50 @@ void HospitalSystem::registerPatient() {
 
   std::cout << "\nPatient registered successfully.\n"
             << "Patient ID: " << patient.getId() << '\n';
+}
+
+void HospitalSystem::addDoctor() {
+  std::cout << "\n--- Add Doctor ---\n";
+
+  std::string id;
+  std::string name;
+  std::string specialization;
+  std::string department;
+  std::string contactNumber;
+  std::string availability;
+
+  if (!readRequiredField("Doctor ID: ", id) ||
+      !readRequiredField("Full name: ", name) ||
+      !readRequiredField("Specialization: ", specialization) ||
+      !readRequiredField("Department: ", department) ||
+      !readRequiredField("Contact number: ", contactNumber) ||
+      !readRequiredField("Availability: ", availability)) {
+    return;
+  }
+
+  const Doctor doctor(id, name, specialization, department, contactNumber,
+                      availability);
+
+  std::string validationError;
+  if (!doctor.validate(validationError)) {
+    std::cout << validationError << '\n';
+    return;
+  }
+
+  if (fileManager_.doctorIdExists(doctor.getId())) {
+    std::cout << "Doctor ID already exists\n";
+    return;
+  }
+
+  std::string errorMessage;
+
+  if (!fileManager_.saveDoctor(doctor, errorMessage)) {
+    std::cout << "Addition failed: " << errorMessage << '\n';
+    return;
+  }
+
+  std::cout << "\nDoctor added successfully.\n"
+            << "Doctor ID: " << doctor.getId() << '\n';
 }
 
 } // namespace hms
