@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "hms/Appointment.h"
@@ -24,7 +25,6 @@ public:
 
   void run();
   void addDoctor();
-  void searchPatients();
 
   // Interactive booking and view workflows
   void bookAppointment();
@@ -71,6 +71,9 @@ public:
 
 private:
   void registerPatient();
+  void searchPatients();
+  void viewPatientDetails();
+  void listPatients();
 
   FileManager fileManager_;
   mutable std::vector<Appointment> appointmentsCache_;

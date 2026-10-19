@@ -1,3 +1,4 @@
+
 #include "hms/HospitalSystem.h"
 
 #include <algorithm>
@@ -33,8 +34,8 @@ std::string toUpper(const std::string &s) {
 
 std::string toLower(std::string value) {
   std::transform(value.begin(), value.end(), value.begin(),
-                 [](unsigned char ch) {
-                   return static_cast<char>(std::tolower(ch));
+                 [](unsigned char c) {
+                   return static_cast<char>(std::tolower(c));
                  });
   return value;
 }
@@ -110,6 +111,8 @@ void HospitalSystem::run() {
               << "3. Search patients\n"
               << "4. Book appointment\n"
               << "5. View appointments\n"
+              << "6. View patient details\n"
+              << "7. List all patients\n"
               << "0. Exit\n"
               << "Enter your choice: ";
 
@@ -137,8 +140,12 @@ void HospitalSystem::run() {
       bookAppointment();
     } else if (choice == "5") {
       viewAppointments();
+    } else if (choice == "6") {
+      viewPatientDetails();
+    } else if (choice == "7") {
+      listPatients();
     } else {
-      std::cout << "Invalid choice. Enter 1, 2, 3, 4, 5, or 0.\n";
+      std::cout << "Invalid choice. Enter 1, 2, 3, 4, 5, 6, 7 or 0.\n";
     }
   }
 }
@@ -186,16 +193,18 @@ void HospitalSystem::registerPatient() {
 
   medicalHistory = trim(medicalHistory);
 
-  // Construct the patient; constructor normalizes ID and gender to uppercase.
+  // The Patient constructor normalizes the ID and gender to uppercase.
   const Patient patient(id, name, age, gender, contactNumber, address,
                         medicalHistory);
 
   std::string validationError;
+
   if (!patient.validate(validationError)) {
     std::cout << validationError << '\n';
     return;
   }
 
+  // Case-insensitive duplicate detection.
   if (fileManager_.patientIdExists(patient.getId())) {
     std::cout << "Patient ID already exists\n";
     return;
@@ -210,6 +219,86 @@ void HospitalSystem::registerPatient() {
 
   std::cout << "\nPatient registered successfully.\n"
             << "Patient ID: " << patient.getId() << '\n';
+}
+
+void HospitalSystem::searchPatients() {
+  std::cout << "\n--- Search Patients ---\n";
+
+  std::string query;
+
+  if (!readRequiredField("Enter patient ID or name: ", query)) {
+    return;
+  }
+
+  const std::vector<Patient> patients = fileManager_.loadPatients();
+  const std::string normalizedQuery = toLower(query);
+
+  // An exact patient ID match takes priority over name matches.
+  for (const Patient &patient : patients) {
+    if (toLower(patient.getId()) == normalizedQuery) {
+      displayPatientDetails(patient);
+      return;
+    }
+  }
+
+  // Otherwise, display every patient whose name contains the query.
+  bool found = false;
+
+  for (const Patient &patient : patients) {
+    if (toLower(patient.getName()).find(normalizedQuery) !=
+        std::string::npos) {
+      displayPatientDetails(patient);
+      found = true;
+    }
+  }
+
+  if (!found) {
+    std::cout << "No matching patient found\n";
+  }
+}
+
+void HospitalSystem::viewPatientDetails() {
+  std::cout << "\n--- View Patient Details ---\n";
+
+  std::string patientId;
+
+  if (!readRequiredField("Enter patient ID: ", patientId)) {
+    return;
+  }
+
+  const std::vector<Patient> patients = fileManager_.loadPatients();
+  const std::string searchId = toUpper(patientId);
+
+  for (const Patient &patient : patients) {
+    if (toUpper(patient.getId()) == searchId) {
+      displayPatientDetails(patient);
+      return;
+    }
+  }
+
+  std::cout << "No matching patient found\n";
+}
+
+void HospitalSystem::listPatients() {
+  std::cout << "\n--- Patient List ---\n";
+
+  const std::vector<Patient> patients = fileManager_.loadPatients();
+
+  if (patients.empty()) {
+    std::cout << "No patients registered\n";
+    return;
+  }
+
+  std::cout << "Patient ID | Name | Age | Gender | Contact number\n"
+            << "---------------------------------------------------\n";
+
+  for (const Patient &patient : patients) {
+    std::cout << patient.getId() << " | "
+              << patient.getName() << " | "
+              << patient.getAge() << " | "
+              << patient.getGender() << " | "
+              << patient.getContactNumber() << '\n';
+  }
 }
 
 void HospitalSystem::addDoctor() {
@@ -235,6 +324,7 @@ void HospitalSystem::addDoctor() {
                       availability);
 
   std::string validationError;
+
   if (!doctor.validate(validationError)) {
     std::cout << validationError << '\n';
     return;
