@@ -1,0 +1,27 @@
+# Build outputs
+/build/
+/cmake-build-*/
+
+# Compiled binaries and object files
+*.exe
+*.o
+*.obj
+*.a
+*.dll
+*.so
+*.lib
+
+# CMake-generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+build.ninja
+.ninja_deps
+.ninja_log
+
+# IDE files
+.vscode/
+.idea/
+
+# Runtime hospital data
+/data/*.csv
