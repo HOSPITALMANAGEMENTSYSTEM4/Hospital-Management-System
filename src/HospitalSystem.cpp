@@ -1,4 +1,4 @@
-﻿
+
 #include "hms/HospitalSystem.h"
 
 #include <iostream>
@@ -132,7 +132,7 @@ void HospitalSystem::registerPatient() {
   }
 
   if (fileManager_.patientIdExists(patient.getId())) {
-    std::cout << "Registration rejected: patient ID already exists.\n";
+    std::cout << "Patient ID already exists\n";
     return;
   }
 

@@ -1,4 +1,6 @@
-﻿#include "hms/FileManager.h"
+#include "hms/FileManager.h"
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -99,6 +101,13 @@ bool parseAge(const std::string &value, int &age) {
   return age >= 1 && age <= 130;
 }
 
+std::string toLower(const std::string &s) {
+  std::string result = s;
+  std::transform(result.begin(), result.end(), result.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return result;
+}
+
 } // namespace
 
 FileManager::FileManager(std::string patientFilePath)
@@ -139,8 +148,10 @@ std::vector<Patient> FileManager::loadPatients() const {
 }
 
 bool FileManager::patientIdExists(const std::string &patientId) const {
+  const std::string needle = toLower(patientId);
+
   for (const Patient &patient : loadPatients()) {
-    if (patient.getId() == patientId) {
+    if (toLower(patient.getId()) == needle) {
       return true;
     }
   }
