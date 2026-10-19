@@ -11,10 +11,12 @@ public:
 
   void run();
   void addDoctor();
-  void searchPatients();
 
 private:
   void registerPatient();
+  void searchPatients();
+  void viewPatientDetails();
+  void listPatients();
 
   FileManager fileManager_;
 };
