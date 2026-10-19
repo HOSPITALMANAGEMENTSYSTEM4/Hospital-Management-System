@@ -113,6 +113,8 @@ void HospitalSystem::run() {
               << "5. View appointments\n"
               << "6. View patient details\n"
               << "7. List all patients\n"
+              << "8. View doctor details\n"
+              << "9. List all doctors\n"
               << "0. Exit\n"
               << "Enter your choice: ";
 
@@ -144,6 +146,10 @@ void HospitalSystem::run() {
       viewPatientDetails();
     } else if (choice == "7") {
       listPatients();
+    } else if (choice == "8") {
+      viewDoctorDetails();
+    } else if (choice == "9") {
+      listDoctors();
     } else {
       std::cout << "Invalid choice. Enter 1, 2, 3, 4, 5, 6, 7 or 0.\n";
     }
@@ -346,38 +352,51 @@ void HospitalSystem::addDoctor() {
             << "Doctor ID: " << doctor.getId() << '\n';
 }
 
-void HospitalSystem::searchPatients() {
-  std::cout << "\n--- Search Patients ---\n";
+void HospitalSystem::viewDoctorDetails() {
+  std::cout << "\n--- View Doctor Details ---\n";
 
-  std::string query;
-  if (!readRequiredField("Enter patient ID or name: ", query)) {
+  std::string doctorId;
+  if (!readRequiredField("Enter doctor ID: ", doctorId)) {
     return;
   }
 
-  const std::vector<Patient> patients = fileManager_.loadPatients();
-  const std::string normalizedQuery = toLower(query);
+  const auto doctors = fileManager_.loadDoctors();
+  const std::string searchId = toUpper(doctorId);
 
-  // An exact patient ID match takes priority over name matches.
-  for (const Patient &patient : patients) {
-    if (toLower(patient.getId()) == normalizedQuery) {
-      displayPatientDetails(patient);
+  for (const Doctor &doctor : doctors) {
+    if (toUpper(doctor.getId()) == searchId) {
+      std::cout << "\n--- Doctor Details ---\n"
+                << "Doctor ID: " << doctor.getId() << '\n'
+                << "Name: " << doctor.getName() << '\n'
+                << "Specialization: " << doctor.getSpecialization() << '\n'
+                << "Department: " << doctor.getDepartment() << '\n'
+                << "Contact number: " << doctor.getContactNumber() << '\n'
+                << "Availability: " << doctor.getAvailability() << '\n';
       return;
     }
   }
 
-  // Otherwise, display every patient whose name contains the query.
-  bool found = false;
+  std::cout << "No matching doctor found\n";
+}
 
-  for (const Patient &patient : patients) {
-    if (toLower(patient.getName()).find(normalizedQuery) !=
-        std::string::npos) {
-      displayPatientDetails(patient);
-      found = true;
-    }
+void HospitalSystem::listDoctors() {
+  std::cout << "\n--- Doctor List ---\n";
+
+  const std::vector<Doctor> doctors = fileManager_.loadDoctors();
+
+  if (doctors.empty()) {
+    std::cout << "No doctors registered\n";
+    return;
   }
 
-  if (!found) {
-    std::cout << "No matching patient found\n";
+  std::cout << "Doctor ID | Name | Specialization | Department\n"
+            << "---------------------------------------------\n";
+
+  for (const Doctor &doctor : doctors) {
+    std::cout << doctor.getId() << " | "
+              << doctor.getName() << " | "
+              << doctor.getSpecialization() << " | "
+              << doctor.getDepartment() << '\n';
   }
 }
 
