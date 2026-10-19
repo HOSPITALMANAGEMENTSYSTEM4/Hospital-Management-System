@@ -21,3 +21,18 @@ add_executable(hms
 )
 
 target_include_directories(hms PRIVATE include)
+
+# ---- Tests ---------------------------------------------------------------
+enable_testing()
+
+add_executable(hms_tests
+    tests/test_duplicate_patient_id.cpp
+    src/Patient.cpp
+    src/FileManager.cpp
+    src/Doctor.cpp
+    src/Appointment.cpp
+)
+
+target_include_directories(hms_tests PRIVATE include)
+
+add_test(NAME TC-PAT-02_DuplicatePatientId COMMAND hms_tests)
