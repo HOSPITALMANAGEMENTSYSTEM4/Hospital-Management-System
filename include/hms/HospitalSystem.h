@@ -11,6 +11,7 @@ public:
 
   void run();
   void addDoctor();
+  void searchPatients();
 
 private:
   void registerPatient();
