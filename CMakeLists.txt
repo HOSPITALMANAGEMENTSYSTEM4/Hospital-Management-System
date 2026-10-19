@@ -61,3 +61,14 @@ add_executable(hms_add_doctor_tests
 target_include_directories(hms_add_doctor_tests PRIVATE include)
 
 add_test(NAME TC-DOC-01_AddDoctor COMMAND hms_add_doctor_tests)
+
+add_executable(hms_search_patients_tests
+    tests/test_search_patients.cpp
+    src/Patient.cpp
+    src/Doctor.cpp
+    src/Appointment.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+)
+target_include_directories(hms_search_patients_tests PRIVATE include)
+add_test(NAME TC-PAT-04_SearchPatients COMMAND hms_search_patients_tests)
