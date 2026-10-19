@@ -124,3 +124,19 @@ add_test(
     NAME TC-PAT-04_SearchPatients
     COMMAND hms_search_patients_tests
 )
+# Patient: view details and list patients
+add_executable(hms_patient_details_list_tests
+    tests/test_patient_details_and_list.cpp
+    src/Patient.cpp
+    src/Doctor.cpp
+    src/Appointment.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+)
+
+target_include_directories(hms_patient_details_list_tests PRIVATE include)
+
+add_test(
+    NAME TC-PAT-05_ViewDetailsAndList
+    COMMAND hms_patient_details_list_tests
+)
