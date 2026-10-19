@@ -22,6 +22,7 @@ build.ninja
 # IDE files
 .vscode/
 .idea/
+compile_commands.json
 
 # Runtime hospital data
 /data/*.csv
