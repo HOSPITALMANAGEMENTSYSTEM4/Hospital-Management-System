@@ -77,3 +77,18 @@ add_test(
     NAME TC-DOC-02_RejectDuplicateDoctorId
     COMMAND hms_duplicate_doctor_tests
 )
+
+add_executable(hms_validate_doctor_tests
+    tests/test_validate_doctor_fields.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/Patient.cpp
+    src/Appointment.cpp
+)
+
+target_include_directories(hms_validate_doctor_tests PRIVATE include)
+
+add_test(
+    NAME TC-DOC-03_ValidateDoctorFields
+    COMMAND hms_validate_doctor_tests
+)
