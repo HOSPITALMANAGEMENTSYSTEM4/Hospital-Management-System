@@ -1,6 +1,7 @@
 #include "hms/FileManager.h"
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -14,6 +15,9 @@ const char *CSV_HEADER =
 
 const char *DOCTOR_CSV_HEADER =
     "doctor_id,name,specialization,department,contact_number,availability\n";
+
+const char *APPOINTMENT_CSV_HEADER =
+    "AppointmentID,PatientID,DoctorID,Date,Time,Status\n";
 
 std::string escapeCsv(const std::string &value) {
   if (value.find_first_of(",\"\r\n") == std::string::npos) {
@@ -113,9 +117,12 @@ std::string toLower(const std::string &s) {
 
 } // namespace
 
-FileManager::FileManager(std::string patientFilePath, std::string doctorFilePath)
+FileManager::FileManager(std::string patientFilePath,
+                         std::string doctorFilePath,
+                         std::string appointmentFilePath)
     : patientFilePath_(std::move(patientFilePath)),
-      doctorFilePath_(std::move(doctorFilePath)) {}
+      doctorFilePath_(std::move(doctorFilePath)),
+      appointmentFilePath_(std::move(appointmentFilePath)) {}
 
 const std::string &FileManager::getPatientFilePath() const {
   return patientFilePath_;
@@ -123,6 +130,10 @@ const std::string &FileManager::getPatientFilePath() const {
 
 const std::string &FileManager::getDoctorFilePath() const {
   return doctorFilePath_;
+}
+
+const std::string &FileManager::getAppointmentFilePath() const {
+  return appointmentFilePath_;
 }
 
 std::vector<Patient> FileManager::loadPatients() const {
@@ -345,6 +356,210 @@ bool FileManager::saveDoctor(const Doctor &doctor,
   if (!output) {
     errorMessage = "Writing the doctor record failed.";
     return false;
+  }
+
+  return true;
+}
+
+std::vector<Appointment> FileManager::loadAppointments() const {
+  std::vector<Appointment> appointments;
+  std::ifstream input(appointmentFilePath_);
+
+  if (!input) {
+    return appointments;
+  }
+
+  std::ostringstream buffer;
+  buffer << input.rdbuf();
+
+  const auto records = parseCsv(buffer.str());
+
+  for (const auto &row : records) {
+    if (row.size() != 6) {
+      continue;
+    }
+
+    const std::string firstCol = toLower(row[0]);
+    if (firstCol == "appointment_id" || firstCol == "appointmentid") {
+      continue;
+    }
+
+    AppointmentStatus st = AppointmentStatus::Booked;
+    if (!stringToStatus(row[5], st)) {
+      continue;
+    }
+
+    Appointment appt(row[0], row[1], row[2], row[3], row[4], st);
+
+    if (appt.isValid()) {
+      bool dup = false;
+      for (const auto &existing : appointments) {
+        if (toLower(existing.getId()) == toLower(appt.getId())) {
+          dup = true;
+          break;
+        }
+      }
+      if (!dup) {
+        appointments.push_back(std::move(appt));
+      }
+    }
+  }
+
+  return appointments;
+}
+
+bool FileManager::appointmentIdExists(const std::string &appointmentId) const {
+  const std::string needle = toLower(appointmentId);
+
+  for (const Appointment &appt : loadAppointments()) {
+    if (toLower(appt.getId()) == needle) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool FileManager::saveAppointment(const Appointment &appointment,
+                                 std::string &errorMessage) const {
+  std::string validationError;
+  if (!appointment.validate(validationError)) {
+    errorMessage = validationError;
+    return false;
+  }
+
+  if (appointmentIdExists(appointment.getId())) {
+    errorMessage = "An appointment with this ID already exists.";
+    return false;
+  }
+
+  const std::filesystem::path filePath(appointmentFilePath_);
+  const std::filesystem::path parent = filePath.parent_path();
+
+  std::error_code filesystemError;
+
+  if (!parent.empty()) {
+    std::filesystem::create_directories(parent, filesystemError);
+
+    if (filesystemError) {
+      errorMessage =
+          "Could not create the data directory: " + filesystemError.message();
+      return false;
+    }
+  }
+
+  bool needsHeader = true;
+
+  {
+    std::ifstream existing(appointmentFilePath_, std::ios::binary);
+
+    if (existing) {
+      existing.seekg(0, std::ios::end);
+      needsHeader = existing.tellg() == std::streampos(0);
+    }
+  }
+
+  std::ofstream output(appointmentFilePath_,
+                       std::ios::out | std::ios::app | std::ios::binary);
+
+  if (!output) {
+    errorMessage = "Could not open the appointment CSV file for writing.";
+    return false;
+  }
+
+  if (needsHeader) {
+    output << APPOINTMENT_CSV_HEADER;
+  }
+
+  output << escapeCsv(appointment.getId()) << ','
+         << escapeCsv(appointment.getPatientId()) << ','
+         << escapeCsv(appointment.getDoctorId()) << ','
+         << escapeCsv(appointment.getDate()) << ','
+         << escapeCsv(appointment.getTime()) << ','
+         << escapeCsv(appointment.getStatusString()) << '\n';
+
+  output.flush();
+
+  if (!output) {
+    errorMessage = "Writing the appointment record failed.";
+    return false;
+  }
+
+  return true;
+}
+
+bool FileManager::saveAppointments(const std::vector<Appointment> &appointments,
+                                  std::string &errorMessage) const {
+  const std::filesystem::path filePath(appointmentFilePath_);
+  const std::filesystem::path parent = filePath.parent_path();
+
+  std::error_code filesystemError;
+
+  if (!parent.empty()) {
+    std::filesystem::create_directories(parent, filesystemError);
+
+    if (filesystemError) {
+      errorMessage =
+          "Could not create the data directory: " + filesystemError.message();
+      return false;
+    }
+  }
+
+  const std::string tempPath = appointmentFilePath_ + ".tmp";
+  const std::string backupPath = appointmentFilePath_ + ".bak";
+
+  {
+    std::ofstream output(tempPath, std::ios::out | std::ios::trunc | std::ios::binary);
+    if (!output) {
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+
+    output << APPOINTMENT_CSV_HEADER;
+    for (const auto &appt : appointments) {
+      output << escapeCsv(appt.getId()) << ','
+             << escapeCsv(appt.getPatientId()) << ','
+             << escapeCsv(appt.getDoctorId()) << ','
+             << escapeCsv(appt.getDate()) << ','
+             << escapeCsv(appt.getTime()) << ','
+             << escapeCsv(appt.getStatusString()) << '\n';
+    }
+
+    output.flush();
+    if (!output.good()) {
+      output.close();
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+  }
+
+  std::error_code ec;
+  if (std::filesystem::exists(filePath, ec)) {
+    std::filesystem::remove(backupPath, ec);
+    std::filesystem::rename(filePath, backupPath, ec);
+    if (ec) {
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+
+    std::filesystem::rename(tempPath, filePath, ec);
+    if (ec) {
+      std::filesystem::rename(backupPath, filePath, ec);
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+
+    std::filesystem::remove(backupPath, ec);
+  } else {
+    std::filesystem::rename(tempPath, filePath, ec);
+    if (ec) {
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
   }
 
   return true;

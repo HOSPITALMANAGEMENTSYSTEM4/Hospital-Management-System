@@ -11,6 +11,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if(MINGW OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND WIN32))
+    add_link_options(-static-libgcc -static-libstdc++)
+endif()
+
 add_executable(hms
     src/main.cpp
     src/Patient.cpp
@@ -91,4 +95,20 @@ target_include_directories(hms_validate_doctor_tests PRIVATE include)
 add_test(
     NAME TC-DOC-03_ValidateDoctorFields
     COMMAND hms_validate_doctor_tests
+)
+
+add_executable(hms_book_appointment_tests
+    tests/test_book_appointment.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_book_appointment_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-01_BookAppointment
+    COMMAND hms_book_appointment_tests
 )
