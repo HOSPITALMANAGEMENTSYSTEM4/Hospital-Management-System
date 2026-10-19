@@ -1,10 +1,12 @@
-
 #include "hms/HospitalSystem.h"
 
+#include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace hms {
 namespace {
@@ -19,6 +21,14 @@ std::string trim(const std::string &value) {
 
   const std::size_t last = value.find_last_not_of(whitespace);
   return value.substr(first, last - first + 1);
+}
+
+std::string toUpper(std::string value) {
+  std::transform(value.begin(), value.end(), value.begin(),
+                 [](unsigned char c) {
+                   return static_cast<char>(std::toupper(c));
+                 });
+  return value;
 }
 
 // VR-03: age 0-120 inclusive.
@@ -60,6 +70,8 @@ void HospitalSystem::run() {
     std::cout << "\n=== Hospital Management System ===\n"
               << "1. Register patient\n"
               << "2. Add doctor\n"
+              << "3. View patient details\n"
+              << "4. List all patients\n"
               << "0. Exit\n"
               << "Enter your choice: ";
 
@@ -81,8 +93,12 @@ void HospitalSystem::run() {
       registerPatient();
     } else if (choice == "2") {
       addDoctor();
+    } else if (choice == "3") {
+      viewPatientDetails();
+    } else if (choice == "4") {
+      listPatients();
     } else {
-      std::cout << "Invalid choice. Enter 1, 2, or 0.\n";
+      std::cout << "Invalid choice. Enter 1, 2, 3, 4, or 0.\n";
     }
   }
 }
@@ -141,7 +157,7 @@ void HospitalSystem::registerPatient() {
     return;
   }
 
-  // Issue #2: case-insensitive duplicate detection (ID already uppercased).
+  // Case-insensitive duplicate detection.
   if (fileManager_.patientIdExists(patient.getId())) {
     std::cout << "Patient ID already exists\n";
     return;
@@ -156,6 +172,58 @@ void HospitalSystem::registerPatient() {
 
   std::cout << "\nPatient registered successfully.\n"
             << "Patient ID: " << patient.getId() << '\n';
+}
+
+void HospitalSystem::viewPatientDetails() {
+  std::cout << "\n--- View Patient Details ---\n";
+
+  std::string patientId;
+
+  if (!readRequiredField("Enter patient ID: ", patientId)) {
+    return;
+  }
+
+  const std::vector<Patient> patients = fileManager_.loadPatients();
+  const std::string searchId = toUpper(patientId);
+
+  for (const Patient &patient : patients) {
+    if (toUpper(patient.getId()) == searchId) {
+      std::cout << "\n--- Patient Details ---\n"
+                << "Patient ID: " << patient.getId() << '\n'
+                << "Name: " << patient.getName() << '\n'
+                << "Age: " << patient.getAge() << '\n'
+                << "Gender: " << patient.getGender() << '\n'
+                << "Contact number: " << patient.getContactNumber() << '\n'
+                << "Address: " << patient.getAddress() << '\n'
+                << "Medical history: " << patient.getMedicalHistory()
+                << '\n';
+      return;
+    }
+  }
+
+  std::cout << "No matching patient found\n";
+}
+
+void HospitalSystem::listPatients() {
+  std::cout << "\n--- Patient List ---\n";
+
+  const std::vector<Patient> patients = fileManager_.loadPatients();
+
+  if (patients.empty()) {
+    std::cout << "No patients registered\n";
+    return;
+  }
+
+  std::cout << "Patient ID | Name | Age | Gender | Contact number\n"
+            << "---------------------------------------------------\n";
+
+  for (const Patient &patient : patients) {
+    std::cout << patient.getId() << " | "
+              << patient.getName() << " | "
+              << patient.getAge() << " | "
+              << patient.getGender() << " | "
+              << patient.getContactNumber() << '\n';
+  }
 }
 
 void HospitalSystem::addDoctor() {
