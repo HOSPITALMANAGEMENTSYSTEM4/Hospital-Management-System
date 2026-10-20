@@ -1,9 +1,12 @@
+
 #include "hms/FileManager.h"
+
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <system_error>
 #include <utility>
 
 namespace hms {
@@ -15,13 +18,15 @@ const char *CSV_HEADER =
 const char *DOCTOR_CSV_HEADER =
     "doctor_id,name,specialization,department,contact_number,availability\n";
 
+const char *APPOINTMENT_CSV_HEADER =
+    "appointment_id,patient_id,doctor_id,date,time,status\n";
+
 std::string escapeCsv(const std::string &value) {
   if (value.find_first_of(",\"\r\n") == std::string::npos) {
     return value;
   }
 
   std::string escaped = "\"";
-
   for (char character : value) {
     if (character == '"') {
       escaped += "\"\"";
@@ -29,7 +34,6 @@ std::string escapeCsv(const std::string &value) {
       escaped += character;
     }
   }
-
   escaped += '"';
   return escaped;
 }
@@ -71,7 +75,6 @@ std::vector<std::vector<std::string>> parseCsv(const std::string &content) {
       if (!(record.size() == 1 && record.front().empty())) {
         records.push_back(record);
       }
-
       record.clear();
     } else {
       field += character;
@@ -79,12 +82,11 @@ std::vector<std::vector<std::string>> parseCsv(const std::string &content) {
   }
 
   if (insideQuotes) {
-    return {}; // Reject a file with an unterminated quoted field.
+    return {};
   }
 
   if (!field.empty() || !record.empty()) {
     record.push_back(field);
-
     if (!(record.size() == 1 && record.front().empty())) {
       records.push_back(record);
     }
@@ -113,9 +115,12 @@ std::string toLower(const std::string &s) {
 
 } // namespace
 
-FileManager::FileManager(std::string patientFilePath, std::string doctorFilePath)
+FileManager::FileManager(std::string patientFilePath,
+                         std::string doctorFilePath,
+                         std::string appointmentFilePath)
     : patientFilePath_(std::move(patientFilePath)),
-      doctorFilePath_(std::move(doctorFilePath)) {}
+      doctorFilePath_(std::move(doctorFilePath)),
+      appointmentFilePath_(std::move(appointmentFilePath)) {}
 
 const std::string &FileManager::getPatientFilePath() const {
   return patientFilePath_;
@@ -135,7 +140,6 @@ std::vector<Patient> FileManager::loadPatients() const {
 
   std::ostringstream buffer;
   buffer << input.rdbuf();
-
   const auto records = parseCsv(buffer.str());
 
   for (const auto &row : records) {
@@ -144,13 +148,11 @@ std::vector<Patient> FileManager::loadPatients() const {
     }
 
     int age = 0;
-
     if (!parseAge(row[2], age)) {
       continue;
     }
 
     Patient patient(row[0], row[1], age, row[3], row[4], row[5], row[6]);
-
     if (patient.isValid()) {
       patients.push_back(std::move(patient));
     }
@@ -186,12 +188,10 @@ bool FileManager::savePatient(const Patient &patient,
 
   const std::filesystem::path filePath(patientFilePath_);
   const std::filesystem::path parent = filePath.parent_path();
-
   std::error_code filesystemError;
 
   if (!parent.empty()) {
     std::filesystem::create_directories(parent, filesystemError);
-
     if (filesystemError) {
       errorMessage =
           "Could not create the data directory: " + filesystemError.message();
@@ -200,10 +200,8 @@ bool FileManager::savePatient(const Patient &patient,
   }
 
   bool needsHeader = true;
-
   {
     std::ifstream existing(patientFilePath_, std::ios::binary);
-
     if (existing) {
       existing.seekg(0, std::ios::end);
       needsHeader = existing.tellg() == std::streampos(0);
@@ -212,7 +210,6 @@ bool FileManager::savePatient(const Patient &patient,
 
   std::ofstream output(patientFilePath_,
                        std::ios::out | std::ios::app | std::ios::binary);
-
   if (!output) {
     errorMessage = "Could not open the patient CSV file for writing.";
     return false;
@@ -229,7 +226,6 @@ bool FileManager::savePatient(const Patient &patient,
          << escapeCsv(patient.getMedicalHistory()) << '\n';
 
   output.flush();
-
   if (!output) {
     errorMessage = "Writing the patient record failed.";
     return false;
@@ -248,7 +244,6 @@ std::vector<Doctor> FileManager::loadDoctors() const {
 
   std::ostringstream buffer;
   buffer << input.rdbuf();
-
   const auto records = parseCsv(buffer.str());
 
   for (const auto &row : records) {
@@ -262,7 +257,6 @@ std::vector<Doctor> FileManager::loadDoctors() const {
     }
 
     Doctor doctor(row[0], row[1], row[2], row[3], row[4], row[5]);
-
     if (doctor.isValid()) {
       doctors.push_back(std::move(doctor));
     }
@@ -298,12 +292,10 @@ bool FileManager::saveDoctor(const Doctor &doctor,
 
   const std::filesystem::path filePath(doctorFilePath_);
   const std::filesystem::path parent = filePath.parent_path();
-
   std::error_code filesystemError;
 
   if (!parent.empty()) {
     std::filesystem::create_directories(parent, filesystemError);
-
     if (filesystemError) {
       errorMessage =
           "Could not create the data directory: " + filesystemError.message();
@@ -312,10 +304,8 @@ bool FileManager::saveDoctor(const Doctor &doctor,
   }
 
   bool needsHeader = true;
-
   {
     std::ifstream existing(doctorFilePath_, std::ios::binary);
-
     if (existing) {
       existing.seekg(0, std::ios::end);
       needsHeader = existing.tellg() == std::streampos(0);
@@ -324,7 +314,6 @@ bool FileManager::saveDoctor(const Doctor &doctor,
 
   std::ofstream output(doctorFilePath_,
                        std::ios::out | std::ios::app | std::ios::binary);
-
   if (!output) {
     errorMessage = "Could not open the doctor CSV file for writing.";
     return false;
@@ -341,13 +330,41 @@ bool FileManager::saveDoctor(const Doctor &doctor,
          << escapeCsv(doctor.getAvailability()) << '\n';
 
   output.flush();
-
   if (!output) {
     errorMessage = "Writing the doctor record failed.";
     return false;
   }
 
   return true;
+}
+
+std::vector<Appointment> FileManager::loadAppointments() const {
+  std::vector<Appointment> appointments;
+  std::ifstream input(appointmentFilePath_);
+
+  if (!input) {
+    return appointments;
+  }
+
+  std::ostringstream buffer;
+  buffer << input.rdbuf();
+  const auto records = parseCsv(buffer.str());
+
+  for (const auto &row : records) {
+    if (row.size() != 6) {
+      continue;
+    }
+
+    const std::string firstCol = toLower(row[0]);
+    if (firstCol == "appointment_id" || firstCol == "appointmentid") {
+      continue;
+    }
+
+    // CSV order: appointment ID, patient ID, doctor ID, date, time, status.
+    appointments.emplace_back(row[0], row[1], row[2], row[3], row[4], row[5]);
+  }
+
+  return appointments;
 }
 
 } // namespace hms
