@@ -346,41 +346,6 @@ void HospitalSystem::addDoctor() {
             << "Doctor ID: " << doctor.getId() << '\n';
 }
 
-void HospitalSystem::searchPatients() {
-  std::cout << "\n--- Search Patients ---\n";
-
-  std::string query;
-  if (!readRequiredField("Enter patient ID or name: ", query)) {
-    return;
-  }
-
-  const std::vector<Patient> patients = fileManager_.loadPatients();
-  const std::string normalizedQuery = toLower(query);
-
-  // An exact patient ID match takes priority over name matches.
-  for (const Patient &patient : patients) {
-    if (toLower(patient.getId()) == normalizedQuery) {
-      displayPatientDetails(patient);
-      return;
-    }
-  }
-
-  // Otherwise, display every patient whose name contains the query.
-  bool found = false;
-
-  for (const Patient &patient : patients) {
-    if (toLower(patient.getName()).find(normalizedQuery) !=
-        std::string::npos) {
-      displayPatientDetails(patient);
-      found = true;
-    }
-  }
-
-  if (!found) {
-    std::cout << "No matching patient found\n";
-  }
-}
-
 std::string HospitalSystem::nextAppointmentId() const {
   int maxNum = 0;
   const auto appointments = fileManager_.loadAppointments();
