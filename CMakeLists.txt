@@ -96,22 +96,6 @@ add_test(
     COMMAND hms_duplicate_doctor_tests
 )
 
-add_executable(hms_duplicate_doctor_tests
-    tests/test_duplicate_doctor_id.cpp
-    src/Doctor.cpp
-    src/FileManager.cpp
-    src/HospitalSystem.cpp
-    src/Patient.cpp
-    src/Appointment.cpp
-)
-
-target_include_directories(hms_duplicate_doctor_tests PRIVATE include)
-
-add_test(
-    NAME TC-DOC-02_RejectDuplicateDoctorId
-    COMMAND hms_duplicate_doctor_tests
-)
-
 add_executable(hms_validate_doctor_tests
     tests/test_validate_doctor_fields.cpp
     src/Doctor.cpp
@@ -154,4 +138,20 @@ target_include_directories(hms_book_appointment_tests PRIVATE include)
 add_test(
     NAME TC-APT-01_BookAppointment
     COMMAND hms_book_appointment_tests
+)
+
+add_executable(hms_reject_unknown_doctor_tests
+    tests/test_reject_unknown_doctor.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_reject_unknown_doctor_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-03_RejectUnknownDoctor
+    COMMAND hms_reject_unknown_doctor_tests
 )
