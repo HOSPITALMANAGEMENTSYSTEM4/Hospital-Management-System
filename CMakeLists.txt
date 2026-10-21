@@ -141,6 +141,22 @@ target_include_directories(hms_search_patients_tests PRIVATE include)
 
 add_test(NAME TC-PAT-04_SearchPatients COMMAND hms_search_patients_tests)
 
+add_executable(hms_reject_unknown_patient_tests
+    tests/test_reject_unknown_patient.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_reject_unknown_patient_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-02_RejectUnknownPatient
+    COMMAND hms_reject_unknown_patient_tests
+)
+
 add_executable(hms_book_appointment_tests
     tests/test_book_appointment.cpp
     src/Appointment.cpp
