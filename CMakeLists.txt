@@ -96,6 +96,8 @@ add_test(
     COMMAND hms_duplicate_doctor_tests
 )
 
+
+# Doctor: field validation
 add_executable(hms_validate_doctor_tests
     tests/test_validate_doctor_fields.cpp
     src/Doctor.cpp
@@ -173,14 +175,31 @@ add_test(
     COMMAND hms_book_appointment_tests
 )
 
-# Doctor: view details and list doctors (TC-DOC-05)
-add_executable(hms_view_list_doctors_tests
-    tests/test_view_list_doctors.cpp
+# Appointment: reject unknown doctor (Issue #13)
+add_executable(hms_reject_unknown_doctor_tests
+    tests/test_reject_unknown_doctor.cpp
+    src/Appointment.cpp
     src/Doctor.cpp
     src/FileManager.cpp
     src/HospitalSystem.cpp
     src/Patient.cpp
+)
+
+target_include_directories(hms_reject_unknown_doctor_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-03_RejectUnknownDoctor
+    COMMAND hms_reject_unknown_doctor_tests
+)
+
+# Doctor: view details and list doctors (TC-DOC-05)
+add_executable(hms_view_list_doctors_tests
+    tests/test_view_list_doctors.cpp
     src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
 )
 
 target_include_directories(hms_view_list_doctors_tests PRIVATE include)
