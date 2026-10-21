@@ -96,7 +96,6 @@ add_test(
     COMMAND hms_duplicate_doctor_tests
 )
 
-
 add_executable(hms_validate_doctor_tests
     tests/test_validate_doctor_fields.cpp
     src/Doctor.cpp
@@ -110,6 +109,23 @@ target_include_directories(hms_validate_doctor_tests PRIVATE include)
 add_test(
     NAME TC-DOC-03_ValidateDoctorFields
     COMMAND hms_validate_doctor_tests
+)
+
+# Doctor: search doctors
+add_executable(hms_search_doctors_tests
+    tests/test_search_doctors.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+    src/Appointment.cpp
+)
+
+target_include_directories(hms_search_doctors_tests PRIVATE include)
+
+add_test(
+    NAME TC-DOC-04_SearchDoctors
+    COMMAND hms_search_doctors_tests
 )
 
 add_executable(hms_search_patients_tests
