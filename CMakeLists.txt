@@ -156,3 +156,20 @@ add_test(
     NAME TC-APT-01_BookAppointment
     COMMAND hms_book_appointment_tests
 )
+
+# Doctor: view details and list doctors (TC-DOC-05)
+add_executable(hms_view_list_doctors_tests
+    tests/test_view_list_doctors.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+    src/Appointment.cpp
+)
+
+target_include_directories(hms_view_list_doctors_tests PRIVATE include)
+
+add_test(
+    NAME TC-DOC-05_ViewAndListDoctors
+    COMMAND hms_view_list_doctors_tests
+)
