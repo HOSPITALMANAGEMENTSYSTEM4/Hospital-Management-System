@@ -1,0 +1,21 @@
+Hospital Management System — Test Execution Report
+Issue: #10
+Feature: HMS-F-012 — View Doctor Details and List Doctors
+Date: 2026-10-20
+
+Build:
+Command: cmake --build build
+Result: PASS
+
+Focused test:
+Command: ctest --test-dir build -R TC-DOC-05 --output-on-failure
+Result: PASS (1/1)
+
+Full test suite:
+Command: ctest --test-dir build --output-on-failure
+Result: PASS (8/8; 0 failures)
+
+TC-DOC-05 status: PASS
+Overall test status: PASS
+
+Note: These results reflect the test output observed during this run.
