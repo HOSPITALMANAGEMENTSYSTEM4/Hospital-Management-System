@@ -111,6 +111,23 @@ add_test(
     COMMAND hms_validate_doctor_tests
 )
 
+# Doctor: search doctors
+add_executable(hms_search_doctors_tests
+    tests/test_search_doctors.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+    src/Appointment.cpp
+)
+
+target_include_directories(hms_search_doctors_tests PRIVATE include)
+
+add_test(
+    NAME TC-DOC-04_SearchDoctors
+    COMMAND hms_search_doctors_tests
+)
+
 add_executable(hms_search_patients_tests
     tests/test_search_patients.cpp
     src/Patient.cpp
@@ -154,4 +171,21 @@ target_include_directories(hms_book_appointment_tests PRIVATE include)
 add_test(
     NAME TC-APT-01_BookAppointment
     COMMAND hms_book_appointment_tests
+)
+
+# Doctor: view details and list doctors (TC-DOC-05)
+add_executable(hms_view_list_doctors_tests
+    tests/test_view_list_doctors.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+    src/Appointment.cpp
+)
+
+target_include_directories(hms_view_list_doctors_tests PRIVATE include)
+
+add_test(
+    NAME TC-DOC-05_ViewAndListDoctors
+    COMMAND hms_view_list_doctors_tests
 )

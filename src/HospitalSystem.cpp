@@ -80,6 +80,16 @@ void displayPatientDetails(const Patient &patient) {
             << "Medical history: " << patient.getMedicalHistory() << '\n';
 }
 
+void displayDoctorDetails(const Doctor &doctor) {
+  std::cout << "\n--- Doctor Details ---\n"
+            << "Doctor ID: " << doctor.getId() << '\n'
+            << "Name: " << doctor.getName() << '\n'
+            << "Specialization: " << doctor.getSpecialization() << '\n'
+            << "Department: " << doctor.getDepartment() << '\n'
+            << "Contact number: " << doctor.getContactNumber() << '\n'
+            << "Availability: " << doctor.getAvailability() << '\n';
+}
+
 } // namespace
 
 HospitalSystem::HospitalSystem(FileManager fileManager)
@@ -113,6 +123,9 @@ void HospitalSystem::run() {
               << "5. View appointments\n"
               << "6. View patient details\n"
               << "7. List all patients\n"
+              << "8. Search doctors\n"
+              << "9. View doctor details\n"
+              << "10. List all doctors\n"
               << "0. Exit\n"
               << "Enter your choice: ";
 
@@ -130,7 +143,7 @@ void HospitalSystem::run() {
       return;
     }
 
-    if (choice == "1") {
+      if (choice == "1") {
       registerPatient();
     } else if (choice == "2") {
       addDoctor();
@@ -144,9 +157,15 @@ void HospitalSystem::run() {
       viewPatientDetails();
     } else if (choice == "7") {
       listPatients();
+    } else if (choice == "8") {
+      searchDoctors();
+    } else if (choice == "9") {
+      viewDoctorDetails();
+    } else if (choice == "10") {
+      listDoctors();
     } else {
-      std::cout << "Invalid choice. Enter 1, 2, 3, 4, 5, 6, 7 or 0.\n";
-    }
+      std::cout << "Invalid choice. Enter a value from 0 to 10.\n";
+    } 
   }
 }
 
@@ -344,6 +363,88 @@ void HospitalSystem::addDoctor() {
 
   std::cout << "\nDoctor added successfully.\n"
             << "Doctor ID: " << doctor.getId() << '\n';
+}
+
+void HospitalSystem::viewDoctorDetails() {
+  std::cout << "\n--- View Doctor Details ---\n";
+
+  std::string doctorId;
+
+  if (!readRequiredField("Enter doctor ID: ", doctorId)) {
+    return;
+  }
+
+  const std::vector<Doctor> doctors = fileManager_.loadDoctors();
+  const std::string searchId = toUpper(doctorId);
+
+  for (const Doctor &doctor : doctors) {
+    if (toUpper(doctor.getId()) == searchId) {
+      displayDoctorDetails(doctor);
+      return;
+    }
+  }
+
+  std::cout << "No matching doctor found\n";
+}
+
+void HospitalSystem::listDoctors() {
+  std::cout << "\n--- Doctor List ---\n";
+
+  const std::vector<Doctor> doctors = fileManager_.loadDoctors();
+
+  if (doctors.empty()) {
+    std::cout << "No doctors registered\n";
+    return;
+  }
+
+  std::cout << "Doctor ID | Name | Specialization | Department\n"
+            << "---------------------------------------------\n";
+
+  for (const Doctor &doctor : doctors) {
+    std::cout << doctor.getId() << " | "
+              << doctor.getName() << " | "
+              << doctor.getSpecialization() << " | "
+              << doctor.getDepartment() << '\n';
+  }
+}
+
+void HospitalSystem::searchDoctors() {
+  std::cout << "\n--- Search Doctors ---\n";
+
+  std::string query;
+
+  if (!readRequiredField(
+          "Enter doctor ID, name, or specialization: ", query)) {
+    return;
+  }
+
+  const std::vector<Doctor> doctors = fileManager_.loadDoctors();
+  const std::string normalizedQuery = toLower(query);
+
+  // Exact doctor ID matches take priority.
+  for (const Doctor &doctor : doctors) {
+    if (toLower(doctor.getId()) == normalizedQuery) {
+      displayDoctorDetails(doctor);
+      return;
+    }
+  }
+
+  // Otherwise, find every doctor matching the partial name or specialization.
+  bool found = false;
+
+  for (const Doctor &doctor : doctors) {
+    if (toLower(doctor.getName()).find(normalizedQuery) !=
+            std::string::npos ||
+        toLower(doctor.getSpecialization()).find(normalizedQuery) !=
+            std::string::npos) {
+      displayDoctorDetails(doctor);
+      found = true;
+    }
+  }
+
+  if (!found) {
+    std::cout << "No matching doctor found\n";
+  }
 }
 
 std::string HospitalSystem::nextAppointmentId() const {
