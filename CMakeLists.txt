@@ -175,6 +175,22 @@ add_test(
     COMMAND hms_book_appointment_tests
 )
 
+# Appointment: validate date and time (Issue #14, HMS-F-018, TC-APT-04)
+add_executable(hms_validate_appointment_datetime_tests
+    tests/test_validate_appointment_date_time.cpp
+    src/Appointment.cpp
+    src/FileManager.cpp
+    src/Patient.cpp
+    src/Doctor.cpp
+)
+
+target_include_directories(hms_validate_appointment_datetime_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-04_ValidateAppointmentDateTime
+    COMMAND hms_validate_appointment_datetime_tests
+)
+
 # Appointment: reject unknown doctor (Issue #13)
 add_executable(hms_reject_unknown_doctor_tests
     tests/test_reject_unknown_doctor.cpp
