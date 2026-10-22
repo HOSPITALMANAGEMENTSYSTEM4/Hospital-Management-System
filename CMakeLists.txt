@@ -236,3 +236,23 @@ add_executable(hms_startup_csv_loading_tests
 )
 target_include_directories(hms_startup_csv_loading_tests PRIVATE include)
 add_test(NAME TC-PER-01_StartupCSVLoading COMMAND hms_startup_csv_loading_tests)
+
+
+
+# Missing CSV files (Issue #16)
+
+add_executable(hms_missing_csv_files_tests
+    tests/test_missing_csv_files.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_missing_csv_files_tests PRIVATE include)
+
+add_test(
+    NAME TC-PER-02_MissingCSVFiles
+    COMMAND hms_missing_csv_files_tests
+)
