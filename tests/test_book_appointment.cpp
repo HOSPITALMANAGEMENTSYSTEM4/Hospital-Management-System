@@ -454,6 +454,32 @@ int main() {
     // Re-instantiate HospitalSystem with same CSV files
     hms::FileManager restartFm(testPatientCsv, testDoctorCsv, testApptCsv);
     hms::HospitalSystem restartedSys(restartFm);
+    // Issue #19: Patient and doctor records survive restart.
+        // Issue #19: Patient and doctor records survive restart.
+    auto patientsAfterRestart = restartFm.loadPatients();
+    auto doctorsAfterRestart = restartFm.loadDoctors();
+
+    check("Issue #19: Both patients persist after restart",
+          patientsAfterRestart.size() == 2);
+
+    check("Issue #19: Both doctors persist after restart",
+          doctorsAfterRestart.size() == 2);
+
+    // Verify the original patient and doctor records remain on disk.
+    const std::string patientsCsvAfterRestart = readFile(testPatientCsv);
+    const std::string doctorsCsvAfterRestart = readFile(testDoctorCsv);
+
+    check("Issue #19: Patient P001 persists after restart",
+          patientsCsvAfterRestart.find("P001") != std::string::npos);
+
+    check("Issue #19: Patient P002 persists after restart",
+          patientsCsvAfterRestart.find("P002") != std::string::npos);
+
+    check("Issue #19: Doctor D001 persists after restart",
+          doctorsCsvAfterRestart.find("D001") != std::string::npos);
+
+    check("Issue #19: Doctor D002 persists after restart",
+          doctorsCsvAfterRestart.find("D002") != std::string::npos);
 
     auto list = restartedSys.listAppointments("ALL");
     check("Restart: 3 appointments loaded from disk", list.size() == 3);
