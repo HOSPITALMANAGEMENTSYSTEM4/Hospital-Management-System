@@ -447,6 +447,27 @@ int main() {
           csvAfterRebooking.find("A0001") != std::string::npos &&
           csvAfterRebooking.find("Cancelled") != std::string::npos);
   }
+    // Issue #22: Failed cancellation must preserve persisted state.
+  {
+    const std::string before = readFile(testApptCsv);
+
+    hms::FileManager badFm(
+        testPatientCsv, testDoctorCsv,
+        "Z:/non_existent_folder_xyz/appointments.csv");
+    hms::HospitalSystem badSys(badFm);
+
+    const hms::OpResult result =
+        badSys.cancelAppointment("A0001", true);
+
+    check("Issue #22: Cancellation fails when appointment storage is unavailable",
+          !result.success);
+
+    check("Issue #22: Failed cancellation leaves original CSV unchanged",
+          readFile(testApptCsv) == before);
+
+    check("Issue #22: Failed cancellation preserves appointment count",
+          countDataRows(testApptCsv) == 3);
+  }
 
 
   // Application Restart Retention and Sequential ID Continuity (HMS-F-030)
