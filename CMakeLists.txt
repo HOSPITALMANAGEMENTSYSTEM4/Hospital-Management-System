@@ -224,7 +224,6 @@ add_test(
     NAME TC-DOC-05_ViewAndListDoctors
     COMMAND hms_view_list_doctors_tests
 )
-
 # Startup CSV loading acceptance test (Issue #15 / TC-PER-01)
 add_executable(hms_startup_csv_loading_tests
     tests/test_startup_csv_loading.cpp
@@ -234,13 +233,15 @@ add_executable(hms_startup_csv_loading_tests
     src/HospitalSystem.cpp
     src/Patient.cpp
 )
+
 target_include_directories(hms_startup_csv_loading_tests PRIVATE include)
-add_test(NAME TC-PER-01_StartupCSVLoading COMMAND hms_startup_csv_loading_tests)
 
-
+add_test(
+    NAME TC-PER-01_StartupCSVLoading
+    COMMAND hms_startup_csv_loading_tests
+)
 
 # Missing CSV files (Issue #16)
-
 add_executable(hms_missing_csv_files_tests
     tests/test_missing_csv_files.cpp
     src/Appointment.cpp
@@ -255,4 +256,21 @@ target_include_directories(hms_missing_csv_files_tests PRIVATE include)
 add_test(
     NAME TC-PER-02_MissingCSVFiles
     COMMAND hms_missing_csv_files_tests
+)
+
+# Issue #17: Skip malformed CSV records
+add_executable(hms_skip_malformed_csv_tests
+    tests/test_skip_malformed_csv.cpp
+    src/Patient.cpp
+    src/Doctor.cpp
+    src/Appointment.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+)
+
+target_include_directories(hms_skip_malformed_csv_tests PRIVATE include)
+
+add_test(
+    NAME TC-PER-03_SkipMalformedCSV
+    COMMAND hms_skip_malformed_csv_tests
 )
