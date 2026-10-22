@@ -1,116 +1,118 @@
 
-#include "hms/FileManager.h"
-#include "hms/Patient.h"
-#include "hms/Doctor.h"
-#include "hms/Appointment.h"
-
+#include "hms/HospitalSystem.h"
+#include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <system_error>
 
-int main() {
-    namespace fs = std::filesystem;
+namespace fs = std::filesystem;
 
-    const fs::path dir = "build/test_missing_csv_data";
+namespace {
 
-    fs::remove_all(dir);
-    fs::create_directories(dir);
+int failures = 0;
 
-    const std::string patients = (dir / "patients.csv").string();
-    const std::string doctors = (dir / "doctors.csv").string();
-    const std::string appointments = (dir / "appointments.csv").string();
+void check(bool condition, const std::string &message) {
+    if (condition) {
+        std::cout << "[PASS] " << message << '\n';
+    } else {
+        std::cout << "[FAIL] " << message << '\n';
+        ++failures;
+    }
+}
 
-    hms::FileManager fm(patients, doctors, appointments);
-    int failures = 0;
+void testMissingFiles(const std::string &scenario,
+                      bool omitPatients,
+                      bool omitDoctors,
+                      bool omitAppointments) {
+    const fs::path dataDir =
+        fs::path("build") / ("TC-PER-02-" + scenario);
 
-    auto check = [&](bool condition, const std::string& message) {
-        std::cout << (condition ? "PASS: " : "FAIL: ")
-                  << message << '\n';
+    std::error_code ec;
+    fs::remove_all(dataDir, ec);
+    ec.clear();
+    fs::create_directories(dataDir, ec);
 
-        if (!condition) {
-            ++failures;
-        }
+    if (ec) {
+        check(false, scenario + ": temporary directory created");
+        return;
+    }
+
+    // Files are deliberately not created for the selected missing cases.
+    // Create empty files for the other cases so only the requested files
+    // are missing.
+    auto createFile = [](const fs::path &path) {
+        std::ofstream file(path);
+        return file.good();
     };
 
-    // Missing CSV files should load as empty collections.
-    check(fm.loadPatients().empty(),
-          "Missing patient CSV loads empty");
+    bool setupOk = true;
 
-    check(fm.loadDoctors().empty(),
-          "Missing doctor CSV loads empty");
-
-    check(fm.loadAppointments().empty(),
-          "Missing appointment CSV loads empty");
-
-    // Saving a valid patient should create the missing CSV.
-    std::string error;
-
-    hms::Patient patient(
-        "P9001", "Test Patient", 30, "F",
-        "9876543210", "Test Address", "None"
-    );
-
-    const bool patientSaved = fm.savePatient(patient, error);
-
-    if (!patientSaved) {
-        std::cout << "Patient save error: " << error << '\n';
+    if (!omitPatients) {
+        setupOk = createFile(dataDir / "patients.csv") && setupOk;
+    }
+    if (!omitDoctors) {
+        setupOk = createFile(dataDir / "doctors.csv") && setupOk;
+    }
+    if (!omitAppointments) {
+        setupOk = createFile(dataDir / "appointments.csv") && setupOk;
     }
 
-    check(patientSaved,
-          "Patient can be saved when CSV is missing");
-
-    check(fs::exists(patients),
-          "Patient CSV is created");
-
-    // Saving a valid doctor should create the missing CSV.
-    error.clear();
-
-    hms::Doctor doctor(
-        "D9001", "Dr. Test", "General", "General",
-        "9876543211", "Monday-Friday 9 AM-5 PM"
-    );
-
-    const bool doctorSaved = fm.saveDoctor(doctor, error);
-
-    if (!doctorSaved) {
-        std::cout << "Doctor save error: " << error << '\n';
+    if (!setupOk) {
+        check(false, scenario + ": test files prepared");
+        fs::remove_all(dataDir, ec);
+        return;
     }
 
-    check(doctorSaved,
-          "Doctor can be saved when CSV is missing");
+    hms::HospitalSystem system(dataDir.string());
 
-    check(fs::exists(doctors),
-          "Doctor CSV is created");
+    std::istringstream input("0\n");
+    std::ostringstream output;
 
-    // Saving an appointment should create the missing CSV.
-    error.clear();
+    auto *oldInput = std::cin.rdbuf(input.rdbuf());
+    auto *oldOutput = std::cout.rdbuf(output.rdbuf());
 
-    hms::Appointment appointment(
-        "A9001", "P9001", "D9001",
-        "2026-11-01", "10:00",
-        hms::AppointmentStatus::Booked
-    );
+    system.displayStartupRecords();
+    system.run();
 
-    const bool appointmentSaved =
-        fm.saveAppointment(appointment, error);
+    std::cin.rdbuf(oldInput);
+    std::cout.rdbuf(oldOutput);
 
-    if (!appointmentSaved) {
-        std::cout << "Appointment save error: " << error << '\n';
-    }
+    const std::string displayed = output.str();
 
-    check(appointmentSaved,
-          "Appointment can be saved when CSV is missing");
+    check(displayed.find("=== Hospital Management System ===")
+              != std::string::npos,
+          scenario + ": main menu appears");
 
-    check(fs::exists(appointments),
-          "Appointment CSV is created");
+    check(displayed.find("Enter your choice:")
+              != std::string::npos,
+          scenario + ": menu accepts input");
 
-    fs::remove_all(dir);
+    check(displayed.find("Exiting Hospital Management System.")
+              != std::string::npos,
+          scenario + ": application exits normally after choice 0");
+
+    check(displayed.find("Records Loaded at Startup")
+              != std::string::npos,
+          scenario + ": startup records section appears");
+
+    fs::remove_all(dataDir, ec);
+}
+
+} // namespace
+
+int main() {
+    testMissingFiles("AllMissing", true, true, true);
+    testMissingFiles("PatientsMissing", true, false, false);
+    testMissingFiles("DoctorsMissing", false, true, false);
+    testMissingFiles("AppointmentsMissing", false, false, true);
 
     if (failures != 0) {
-        std::cerr << failures << " test(s) failed.\n";
+        std::cerr << failures << " assertion(s) failed.\n";
         return 1;
     }
 
-    std::cout << "All missing-CSV tests passed.\n";
+    std::cout << "All Issue #16 startup scenarios passed.\n";
     return 0;
 }
