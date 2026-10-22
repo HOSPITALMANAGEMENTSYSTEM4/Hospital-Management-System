@@ -23,8 +23,11 @@ public:
   explicit HospitalSystem(FileManager fileManager);
   explicit HospitalSystem(const std::string &dataDir);
 
+  void displayStartupRecords();
   void run();
   void addDoctor();
+  void viewDoctorDetails();
+  void listDoctors();
 
   // Interactive booking and view workflows
   void bookAppointment();
@@ -54,14 +57,16 @@ public:
 
   // Appointment listing (HMS-F-022)
   // filterType: "ALL", "PATIENT", "DOCTOR"
-  std::vector<Appointment> listAppointments(const std::string &filterType = "ALL",
-                                            const std::string &filterId = "") const;
+  std::vector<Appointment> listAppointments(
+      const std::string &filterType = "ALL",
+      const std::string &filterId = "") const;
 
   // Cancellation (BR-06, HMS-F-023)
-  OpResult cancelAppointment(const std::string &appointmentId, bool confirmed = true);
+  OpResult cancelAppointment(const std::string &appointmentId,
+                             bool confirmed = true);
 
   // Lookup appointment by ID
-  const Appointment* findAppointment(const std::string &appointmentId) const;
+  const Appointment *findAppointment(const std::string &appointmentId) const;
 
   // Generates next unique sequential Appointment ID (VR-12, HMS-F-015)
   std::string nextAppointmentId() const;
@@ -72,6 +77,7 @@ public:
 private:
   void registerPatient();
   void searchPatients();
+  void searchDoctors();
   void viewPatientDetails();
   void listPatients();
 
