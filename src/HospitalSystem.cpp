@@ -125,17 +125,10 @@ void HospitalSystem::displayStartupRecords() {
 void HospitalSystem::run() {
   while (true) {
     std::cout << "\n=== Hospital Management System ===\n"
-              << "1. Register patient\n"
-              << "2. Add doctor\n"
-              << "3. Search patients\n"
-              << "4. Book appointment\n"
-              << "5. View appointments\n"
-              << "6. View patient details\n"
-              << "7. List all patients\n"
-              << "8. Search doctors\n"
-              << "9. View doctor details\n"
-              << "10. List all doctors\n"
-              << "0. Exit\n"
+              << "1. Patient Management\n"
+              << "2. Doctor Management\n"
+              << "3. Appointment Management\n"
+              << "4. Exit\n"
               << "Enter your choice: ";
 
     std::string choice;
@@ -147,33 +140,122 @@ void HospitalSystem::run() {
 
     choice = trim(choice);
 
-    if (choice == "0") {
+    if (choice == "4") {
       std::cout << "Exiting Hospital Management System.\n";
+      return;
+    } else if (choice == "1") {
+      patientMenu();
+    } else if (choice == "2") {
+      doctorMenu();
+    } else if (choice == "3") {
+      appointmentMenu();
+    } else {
+      std::cout << "Invalid choice. Enter 1, 2, 3, or 4.\n";
+    }
+  }
+}
+
+// HMS-F-032, SRS §3.1 - Patient submenu
+void HospitalSystem::patientMenu() {
+  while (true) {
+    std::cout << "\n=== Patient Management ===\n"
+              << "1. Register\n"
+              << "2. Search\n"
+              << "3. View All\n"
+              << "4. Update\n"
+              << "0. Return\n"
+              << "Enter your choice: ";
+
+    std::string choice;
+
+    if (!std::getline(std::cin, choice)) {
       return;
     }
 
-      if (choice == "1") {
+    choice = trim(choice);
+
+    if (choice == "0") {
+      return;
+    } else if (choice == "1") {
       registerPatient();
     } else if (choice == "2") {
-      addDoctor();
-    } else if (choice == "3") {
       searchPatients();
-    } else if (choice == "4") {
-      bookAppointment();
-    } else if (choice == "5") {
-      viewAppointments();
-    } else if (choice == "6") {
-      viewPatientDetails();
-    } else if (choice == "7") {
+    } else if (choice == "3") {
       listPatients();
-    } else if (choice == "8") {
-      searchDoctors();
-    } else if (choice == "9") {
-      viewDoctorDetails();
-    } else if (choice == "10") {
-      listDoctors();
+    } else if (choice == "4") {
+      std::cout << "Update patient: not yet implemented.\n";
     } else {
-      std::cout << "Invalid choice. Enter a value from 0 to 10.\n";
+      std::cout << "Invalid choice. Enter 0 to 4.\n";
+    }
+  }
+}
+
+// HMS-F-032, SRS §3.1 - Doctor submenu
+void HospitalSystem::doctorMenu() {
+  while (true) {
+    std::cout << "\n=== Doctor Management ===\n"
+              << "1. Add\n"
+              << "2. Search\n"
+              << "3. View All\n"
+              << "4. Update\n"
+              << "0. Return\n"
+              << "Enter your choice: ";
+
+    std::string choice;
+
+    if (!std::getline(std::cin, choice)) {
+      return;
+    }
+
+    choice = trim(choice);
+
+    if (choice == "0") {
+      return;
+    } else if (choice == "1") {
+      addDoctor();
+    } else if (choice == "2") {
+      searchDoctors();
+    } else if (choice == "3") {
+      listDoctors();
+    } else if (choice == "4") {
+      std::cout << "Update doctor: not yet implemented.\n";
+    } else {
+      std::cout << "Invalid choice. Enter 0 to 4.\n";
+    }
+  }
+}
+
+// HMS-F-032, SRS §3.1 - Appointment submenu
+void HospitalSystem::appointmentMenu() {
+  while (true) {
+    std::cout << "\n=== Appointment Management ===\n"
+              << "1. Book\n"
+              << "2. View\n"
+              << "3. Cancel\n"
+              << "4. Check Doctor Availability\n"
+              << "0. Return\n"
+              << "Enter your choice: ";
+
+    std::string choice;
+
+    if (!std::getline(std::cin, choice)) {
+      return;
+    }
+
+    choice = trim(choice);
+
+    if (choice == "0") {
+      return;
+    } else if (choice == "1") {
+      bookAppointment();
+    } else if (choice == "2") {
+      viewAppointments();
+    } else if (choice == "3") {
+      cancelAppointmentInteractive();
+    } else if (choice == "4") {
+      checkDoctorAvailabilityInteractive();
+    } else {
+      std::cout << "Invalid choice. Enter 0 to 4.\n";
     }
   }
 }
@@ -732,6 +814,47 @@ const Appointment* HospitalSystem::findAppointment(
   }
 
   return nullptr;
+}
+
+void HospitalSystem::cancelAppointmentInteractive() {
+  std::cout << "\n--- Cancel Appointment ---\n";
+
+  std::string appointmentId;
+
+  if (!readRequiredField("Enter appointment ID: ", appointmentId)) {
+    return;
+  }
+
+  std::cout << "Confirm cancellation? (Y/N): ";
+  std::string confirm;
+
+  if (!std::getline(std::cin, confirm)) {
+    return;
+  }
+
+  confirm = trim(confirm);
+  const bool confirmed = (confirm == "Y" || confirm == "y");
+  const OpResult result = cancelAppointment(appointmentId, confirmed);
+  std::cout << result.message << '\n';
+}
+
+void HospitalSystem::checkDoctorAvailabilityInteractive() {
+  std::cout << "\n--- Check Doctor Availability ---\n";
+
+  std::string doctorId;
+  std::string date;
+  std::string time;
+
+  if (!readRequiredField("Enter doctor ID: ", doctorId) ||
+      !readRequiredField("Date (YYYY-MM-DD): ", date) ||
+      !readRequiredField("Time (HH:MM): ", time)) {
+    return;
+  }
+
+  std::string message;
+  const bool available = checkDoctorAvailability(doctorId, date, time, message);
+  std::cout << (available ? "Available" : "Not available") << ": "
+            << message << '\n';
 }
 
 } // namespace hms

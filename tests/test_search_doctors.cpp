@@ -46,8 +46,8 @@ std::string runSearch(const std::string &doctorPath, const std::string &query) {
   hms::HospitalSystem system{
       hms::FileManager("build/test_search_doc_patients.csv", doctorPath)};
 
-  // Select menu option 8 ("Search doctors"), enter query, then exit (0).
-  std::istringstream input("8\n" + query + "\n0\n");
+  // Select Doctor Management (2), Search (2), enter query, return (0), exit (4).
+  std::istringstream input("2\n2\n" + query + "\n0\n4\n");
   std::ostringstream output;
 
   auto *oldInput = std::cin.rdbuf(input.rdbuf());

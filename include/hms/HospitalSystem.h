@@ -81,6 +81,15 @@ private:
   void viewPatientDetails();
   void listPatients();
 
+  // HMS-F-032: submenu loops (SRS §3.1)
+  void patientMenu();
+  void doctorMenu();
+  void appointmentMenu();
+
+  // Interactive wrappers for cancellation and availability check
+  void cancelAppointmentInteractive();
+  void checkDoctorAvailabilityInteractive();
+
   FileManager fileManager_;
   mutable std::vector<Appointment> appointmentsCache_;
 };
