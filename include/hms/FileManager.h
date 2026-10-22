@@ -4,6 +4,7 @@
 #include "hms/Doctor.h"
 #include "hms/Patient.h"
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -11,22 +12,36 @@ namespace hms {
 
 class FileManager {
 public:
-  explicit FileManager(std::string patientFilePath = "data/patients.csv",
-                       std::string doctorFilePath = "data/doctors.csv",
-                       std::string appointmentFilePath = "data/appointments.csv");
+  explicit FileManager(
+      std::string patientFilePath = "data/patients.csv",
+      std::string doctorFilePath = "data/doctors.csv",
+      std::string appointmentFilePath = "data/appointments.csv");
 
-  std::vector<Patient> loadPatients() const;
+  // Load records and optionally report malformed record counts.
+  std::vector<Patient> loadPatients(
+      std::size_t *malformedCount = nullptr) const;
+
   bool patientIdExists(const std::string &patientId) const;
-  bool savePatient(const Patient &patient, std::string &errorMessage) const;
+  bool savePatient(const Patient &patient,
+                   std::string &errorMessage) const;
 
-  std::vector<Doctor> loadDoctors() const;
+  std::vector<Doctor> loadDoctors(
+      std::size_t *malformedCount = nullptr) const;
+
   bool doctorIdExists(const std::string &doctorId) const;
-  bool saveDoctor(const Doctor &doctor, std::string &errorMessage) const;
+  bool saveDoctor(const Doctor &doctor,
+                  std::string &errorMessage) const;
 
-  std::vector<Appointment> loadAppointments() const;
+  std::vector<Appointment> loadAppointments(
+      std::size_t *malformedCount = nullptr) const;
+
   bool appointmentIdExists(const std::string &appointmentId) const;
-  bool saveAppointment(const Appointment &appointment, std::string &errorMessage) const;
-  bool saveAppointments(const std::vector<Appointment> &appointments, std::string &errorMessage) const;
+  bool saveAppointment(const Appointment &appointment,
+                       std::string &errorMessage) const;
+
+  bool saveAppointments(
+      const std::vector<Appointment> &appointments,
+      std::string &errorMessage) const;
 
   const std::string &getPatientFilePath() const;
   const std::string &getDoctorFilePath() const;

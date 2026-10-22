@@ -157,3 +157,19 @@ add_test(
     NAME TC-DOC-05_ViewAndListDoctors
     COMMAND hms_view_list_doctors_tests
 )
+# Issue #17: Skip malformed CSV records
+add_executable(hms_skip_malformed_csv_tests
+    tests/test_skip_malformed_csv.cpp
+    src/Patient.cpp
+    src/Doctor.cpp
+    src/Appointment.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+)
+
+target_include_directories(hms_skip_malformed_csv_tests PRIVATE include)
+
+add_test(
+    NAME TC-PER-03_SkipMalformedCSV
+    COMMAND hms_skip_malformed_csv_tests
+)

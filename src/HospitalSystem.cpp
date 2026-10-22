@@ -285,10 +285,17 @@ void HospitalSystem::viewPatientDetails() {
   std::cout << "No matching patient found\n";
 }
 
+
 void HospitalSystem::listPatients() {
   std::cout << "\n--- Patient List ---\n";
 
-  const std::vector<Patient> patients = fileManager_.loadPatients();
+  std::size_t malformedCount = 0;
+  const std::vector<Patient> patients =
+      fileManager_.loadPatients(&malformedCount);
+
+  if (malformedCount > 0) {
+    std::cout << malformedCount << " malformed record(s) skipped\n";
+  }
 
   if (patients.empty()) {
     std::cout << "No patients registered\n";
@@ -306,6 +313,7 @@ void HospitalSystem::listPatients() {
               << patient.getContactNumber() << '\n';
   }
 }
+
 
 void HospitalSystem::addDoctor() {
   std::cout << "\n--- Add Doctor ---\n";
@@ -379,10 +387,17 @@ void HospitalSystem::viewDoctorDetails() {
   std::cout << "No matching doctor found\n";
 }
 
+
 void HospitalSystem::listDoctors() {
   std::cout << "\n--- Doctor List ---\n";
 
-  const std::vector<Doctor> doctors = fileManager_.loadDoctors();
+  std::size_t malformedCount = 0;
+  const std::vector<Doctor> doctors =
+      fileManager_.loadDoctors(&malformedCount);
+
+  if (malformedCount > 0) {
+    std::cout << malformedCount << " malformed record(s) skipped\n";
+  }
 
   if (doctors.empty()) {
     std::cout << "No doctors registered\n";
