@@ -150,6 +150,7 @@ void HospitalSystem::run() {
     } else if (choice == "3") {
       appointmentMenu();
     } else {
+      // HMS-F-033: Reject invalid menu options (non-numeric, out-of-range, empty)
       std::cout << "Invalid choice. Enter 1, 2, 3, or 4.\n";
     }
   }
@@ -185,6 +186,7 @@ void HospitalSystem::patientMenu() {
     } else if (choice == "4") {
       std::cout << "Update patient: not yet implemented.\n";
     } else {
+      // HMS-F-033: Reject invalid menu options (non-numeric, out-of-range, empty)
       std::cout << "Invalid choice. Enter 0 to 4.\n";
     }
   }
@@ -220,6 +222,7 @@ void HospitalSystem::doctorMenu() {
     } else if (choice == "4") {
       std::cout << "Update doctor: not yet implemented.\n";
     } else {
+      // HMS-F-033: Reject invalid menu options (non-numeric, out-of-range, empty)
       std::cout << "Invalid choice. Enter 0 to 4.\n";
     }
   }
@@ -255,6 +258,7 @@ void HospitalSystem::appointmentMenu() {
     } else if (choice == "4") {
       checkDoctorAvailabilityInteractive();
     } else {
+      // HMS-F-033: Reject invalid menu options (non-numeric, out-of-range, empty)
       std::cout << "Invalid choice. Enter 0 to 4.\n";
     }
   }
