@@ -26,3 +26,11 @@ compile_commands.json
 
 # Runtime hospital data
 /data/*.csv
+
+# Issue #17 local build and debug files
+/build-issue17/
+/compiler_error.txt
+/compiler_test.cpp
+
+# Local backup files
+*.bak

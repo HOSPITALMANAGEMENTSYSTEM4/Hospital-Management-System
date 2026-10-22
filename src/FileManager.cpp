@@ -38,63 +38,86 @@ std::string escapeCsv(const std::string &value) {
   return escaped;
 }
 
-std::vector<std::vector<std::string>> parseCsv(const std::string &content) {
+struct ParsedCsv {
   std::vector<std::vector<std::string>> records;
-  std::vector<std::string> record;
-  std::string field;
-  bool insideQuotes = false;
+  std::size_t malformedCount{0};
+};
 
-  for (std::size_t i = 0; i < content.size(); ++i) {
-    const char character = content[i];
+// Parse one physical line at a time so a malformed quoted record cannot
+// consume the remaining file. Newlines inside fields are not supported by
+// the application data models and are treated as malformed records.
+ParsedCsv parseCsv(const std::string &content) {
+  ParsedCsv parsed;
+  std::istringstream lines(content);
+  std::string line;
 
-    if (insideQuotes) {
-      if (character == '"') {
-        if (i + 1 < content.size() && content[i + 1] == '"') {
-          field += '"';
-          ++i;
+  while (std::getline(lines, line)) {
+    if (!line.empty() && line.back() == '\r') {
+      line.pop_back();
+    }
+    if (line.empty()) {
+      continue;
+    }
+
+    std::vector<std::string> record;
+    std::string field;
+    bool insideQuotes = false;
+    bool afterClosingQuote = false;
+    bool malformed = false;
+
+    for (std::size_t i = 0; i < line.size(); ++i) {
+      const char character = line[i];
+
+      if (insideQuotes) {
+        if (character == '"') {
+          if (i + 1 < line.size() && line[i + 1] == '"') {
+            field += '"';
+            ++i;
+          } else {
+            insideQuotes = false;
+            afterClosingQuote = true;
+          }
         } else {
-          insideQuotes = false;
+          field += character;
+        }
+      } else if (afterClosingQuote) {
+        if (character == ',') {
+          record.push_back(field);
+          field.clear();
+          afterClosingQuote = false;
+        } else {
+          malformed = true;
+          break;
+        }
+      } else if (character == ',') {
+        record.push_back(field);
+        field.clear();
+      } else if (character == '"') {
+        if (field.empty()) {
+          insideQuotes = true;
+        } else {
+          malformed = true;
+          break;
         }
       } else {
         field += character;
       }
-    } else if (character == '"' && field.empty()) {
-      insideQuotes = true;
-    } else if (character == ',') {
-      record.push_back(field);
-      field.clear();
-    } else if (character == '\n' || character == '\r') {
-      if (character == '\r' && i + 1 < content.size() &&
-          content[i + 1] == '\n') {
-        ++i;
-      }
-
-      record.push_back(field);
-      field.clear();
-
-      if (!(record.size() == 1 && record.front().empty())) {
-        records.push_back(record);
-      }
-
-      record.clear();
-    } else {
-      field += character;
     }
-  }
 
-  if (insideQuotes) {
-    return {}; // Reject a file with an unterminated quoted field.
-  }
+    if (insideQuotes) {
+      malformed = true;
+    }
 
-  if (!field.empty() || !record.empty()) {
+    if (malformed) {
+      ++parsed.malformedCount;
+      continue;
+    }
+
     record.push_back(field);
-
-    if (!(record.size() == 1 && record.front().empty())) {
-      records.push_back(record);
-    }
+    parsed.records.push_back(std::move(record));
   }
 
-  return records;
+  return parsed;
 }
 
 bool parseAge(const std::string &value, int &age) {
@@ -136,37 +159,49 @@ const std::string &FileManager::getAppointmentFilePath() const {
   return appointmentFilePath_;
 }
 
-std::vector<Patient> FileManager::loadPatients() const {
+std::vector<Patient> FileManager::loadPatients(std::size_t *malformedCount) const {
   std::vector<Patient> patients;
+  std::size_t skipped = 0;
   std::ifstream input(patientFilePath_);
 
   if (!input) {
+    if (malformedCount) {
+      *malformedCount = 0;
+    }
     return patients;
   }
 
   std::ostringstream buffer;
   buffer << input.rdbuf();
+  ParsedCsv parsed = parseCsv(buffer.str());
+  skipped += parsed.malformedCount;
 
-  const auto records = parseCsv(buffer.str());
-
-  for (const auto &row : records) {
-    if (row.size() != 7 || row[0] == "patient_id") {
+  for (const auto &row : parsed.records) {
+    if (row.size() == 7 && row[0] == "patient_id") {
+      continue;
+    }
+    if (row.size() != 7) {
+      ++skipped;
       continue;
     }
 
     int age = 0;
-
     if (!parseAge(row[2], age)) {
+      ++skipped;
       continue;
     }
 
     Patient patient(row[0], row[1], age, row[3], row[4], row[5], row[6]);
-
     if (patient.isValid()) {
       patients.push_back(std::move(patient));
+    } else {
+      ++skipped;
     }
   }
 
+  if (malformedCount) {
+    *malformedCount = skipped;
+  }
   return patients;
 }
 
@@ -249,36 +284,46 @@ bool FileManager::savePatient(const Patient &patient,
   return true;
 }
 
-std::vector<Doctor> FileManager::loadDoctors() const {
+std::vector<Doctor> FileManager::loadDoctors(std::size_t *malformedCount) const {
   std::vector<Doctor> doctors;
+  std::size_t skipped = 0;
   std::ifstream input(doctorFilePath_);
 
   if (!input) {
+    if (malformedCount) {
+      *malformedCount = 0;
+    }
     return doctors;
   }
 
   std::ostringstream buffer;
   buffer << input.rdbuf();
+  ParsedCsv parsed = parseCsv(buffer.str());
+  skipped += parsed.malformedCount;
 
-  const auto records = parseCsv(buffer.str());
-
-  for (const auto &row : records) {
-    if (row.size() != 6) {
-      continue;
+  for (const auto &row : parsed.records) {
+    if (!row.empty()) {
+      const std::string firstCol = toLower(row[0]);
+      if (firstCol == "doctor_id" || firstCol == "doctorid") {
+        continue;
+      }
     }
-
-    const std::string firstCol = toLower(row[0]);
-    if (firstCol == "doctor_id" || firstCol == "doctorid") {
+    if (row.size() != 6) {
+      ++skipped;
       continue;
     }
 
     Doctor doctor(row[0], row[1], row[2], row[3], row[4], row[5]);
-
     if (doctor.isValid()) {
       doctors.push_back(std::move(doctor));
+    } else {
+      ++skipped;
     }
   }
 
+  if (malformedCount) {
+    *malformedCount = skipped;
+  }
   return doctors;
 }
 
@@ -361,50 +406,66 @@ bool FileManager::saveDoctor(const Doctor &doctor,
   return true;
 }
 
-std::vector<Appointment> FileManager::loadAppointments() const {
+std::vector<Appointment> FileManager::loadAppointments(
+    std::size_t *malformedCount) const {
   std::vector<Appointment> appointments;
+  std::size_t skipped = 0;
   std::ifstream input(appointmentFilePath_);
 
   if (!input) {
+    if (malformedCount) {
+      *malformedCount = 0;
+    }
     return appointments;
   }
 
   std::ostringstream buffer;
   buffer << input.rdbuf();
+  ParsedCsv parsed = parseCsv(buffer.str());
+  skipped += parsed.malformedCount;
 
-  const auto records = parseCsv(buffer.str());
-
-  for (const auto &row : records) {
-    if (row.size() != 6) {
-      continue;
+  for (const auto &row : parsed.records) {
+    if (!row.empty()) {
+      const std::string firstCol = toLower(row[0]);
+      if (firstCol == "appointment_id" || firstCol == "appointmentid") {
+        continue;
+      }
     }
-
-    const std::string firstCol = toLower(row[0]);
-    if (firstCol == "appointment_id" || firstCol == "appointmentid") {
+    if (row.size() != 6) {
+      ++skipped;
       continue;
     }
 
     AppointmentStatus st = AppointmentStatus::Booked;
     if (!stringToStatus(row[5], st)) {
+      ++skipped;
       continue;
     }
 
     Appointment appt(row[0], row[1], row[2], row[3], row[4], st);
+    if (!appt.isValid()) {
+      ++skipped;
+      continue;
+    }
 
-    if (appt.isValid()) {
-      bool dup = false;
-      for (const auto &existing : appointments) {
-        if (toLower(existing.getId()) == toLower(appt.getId())) {
-          dup = true;
-          break;
-        }
-      }
-      if (!dup) {
-        appointments.push_back(std::move(appt));
+    bool duplicate = false;
+    for (const auto &existing : appointments) {
+      if (toLower(existing.getId()) == toLower(appt.getId())) {
+        duplicate = true;
+        break;
       }
     }
+    if (duplicate) {
+      ++skipped;
+      continue;
+    }
+
+    appointments.push_back(std::move(appt));
   }
 
+  if (malformedCount) {
+    *malformedCount = skipped;
+  }
   return appointments;
 }
 
