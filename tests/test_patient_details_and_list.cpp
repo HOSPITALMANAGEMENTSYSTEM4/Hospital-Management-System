@@ -23,7 +23,8 @@ void check(bool condition, const std::string &message) {
 }
 
 void writePatients(const std::string &path) {
-    hms::FileManager fileManager(path, "build/test_details_doctors.csv");
+    hms::FileManager fileManager(
+        path, "build/test_details_doctors.csv");
 
     const std::vector<hms::Patient> patients = {
         {"P101", "Anita Sharma", 21, "F", "9876543210",
@@ -37,7 +38,8 @@ void writePatients(const std::string &path) {
     for (const auto &patient : patients) {
         std::string error;
         if (!fileManager.savePatient(patient, error)) {
-            throw std::runtime_error("Could not save test patient: " + error);
+            throw std::runtime_error(
+                "Could not save test patient: " + error);
         }
     }
 }
@@ -72,7 +74,7 @@ void testViewPatientDetails() {
     std::filesystem::remove(path);
     writePatients(path);
 
-    const std::string output = runMenu(path, "4\nP102\n0\n");
+    const std::string output = runMenu(path, "6\nP102\n0\n");
 
     check(output.find("Patient ID: P102") != std::string::npos,
           "Option 4 displays the requested patient ID");
@@ -95,7 +97,7 @@ void testUnknownPatientDetails() {
     std::filesystem::remove(path);
     writePatients(path);
 
-    const std::string output = runMenu(path, "4\nP999\n0\n");
+    const std::string output = runMenu(path, "6\nP999\n0\n");
 
     check(output.find("No matching patient found") != std::string::npos,
           "Option 4 reports an unknown patient ID");
@@ -108,7 +110,7 @@ void testListAllPatients() {
     std::filesystem::remove(path);
     writePatients(path);
 
-    const std::string output = runMenu(path, "5\n0\n");
+    const std::string output = runMenu(path, "7\n0\n");
 
     check(output.find("P101 | Anita Sharma") != std::string::npos,
           "Option 5 lists the first patient");
@@ -124,10 +126,51 @@ void testEmptyPatientList() {
     const std::string path = "build/test_list_empty.csv";
     std::filesystem::remove(path);
 
-    const std::string output = runMenu(path, "5\n0\n");
+    const std::string output = runMenu(path, "7\n0\n");
 
     check(output.find("No patients registered") != std::string::npos,
           "Option 5 handles an empty patient list");
+
+    std::filesystem::remove(path);
+}
+
+void testPatientRegistrationPersistsImmediately() {
+    const std::string path = "build/test_register_patient.csv";
+    std::filesystem::remove(path);
+
+    // Select Register Patient, enter details, and then exit.
+    const std::string input =
+        "1\n"
+        "P201\n"
+        "Test Patient\n"
+        "25\n"
+        "F\n"
+        "9876543210\n"
+        "Bangalore\n"
+        "None\n"
+        "0\n";
+
+    const std::string output = runMenu(path, input);
+
+    check(output.find("Patient registered successfully.") !=
+              std::string::npos,
+          "Registration reports success");
+
+    // Read the CSV after registration and before any restart.
+    hms::FileManager fileManager(
+        path, "build/test_details_doctors.csv");
+
+    const auto patients = fileManager.loadPatients();
+
+    check(patients.size() == 1,
+          "HMS-F-029: CSV immediately contains one registered patient");
+
+    if (!patients.empty()) {
+        check(patients[0].getId() == "P201",
+              "HMS-F-029: Registered patient ID is persisted");
+        check(patients[0].getName() == "Test Patient",
+              "HMS-F-029: Registered patient name is persisted");
+    }
 
     std::filesystem::remove(path);
 }
@@ -142,6 +185,7 @@ int main() {
         testUnknownPatientDetails();
         testListAllPatients();
         testEmptyPatientList();
+        testPatientRegistrationPersistsImmediately();
     } catch (const std::exception &error) {
         std::cerr << "[ERROR] " << error.what() << '\n';
         return 1;
@@ -152,6 +196,7 @@ int main() {
         return 1;
     }
 
-    std::cout << "All patient details and listing tests passed.\n";
+    std::cout << "All patient details, listing, and registration "
+                 "persistence tests passed.\n";
     return 0;
 }

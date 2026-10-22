@@ -96,7 +96,6 @@ add_test(
     COMMAND hms_duplicate_doctor_tests
 )
 
-
 # Doctor: field validation
 add_executable(hms_validate_doctor_tests
     tests/test_validate_doctor_fields.cpp
@@ -130,6 +129,7 @@ add_test(
     COMMAND hms_search_doctors_tests
 )
 
+# Patient: search patients
 add_executable(hms_search_patients_tests
     tests/test_search_patients.cpp
     src/Patient.cpp
@@ -141,8 +141,12 @@ add_executable(hms_search_patients_tests
 
 target_include_directories(hms_search_patients_tests PRIVATE include)
 
-add_test(NAME TC-PAT-04_SearchPatients COMMAND hms_search_patients_tests)
+add_test(
+    NAME TC-PAT-04_SearchPatients
+    COMMAND hms_search_patients_tests
+)
 
+# Appointment: reject unknown patient
 add_executable(hms_reject_unknown_patient_tests
     tests/test_reject_unknown_patient.cpp
     src/Appointment.cpp
@@ -159,6 +163,7 @@ add_test(
     COMMAND hms_reject_unknown_patient_tests
 )
 
+# Appointment: book appointment
 add_executable(hms_book_appointment_tests
     tests/test_book_appointment.cpp
     src/Appointment.cpp
@@ -256,6 +261,24 @@ target_include_directories(hms_missing_csv_files_tests PRIVATE include)
 add_test(
     NAME TC-PER-02_MissingCSVFiles
     COMMAND hms_missing_csv_files_tests
+)
+
+
+# Issue #18: Patient details, list patients, and immediate registration persistence
+add_executable(hms_patient_details_tests
+    tests/test_patient_details_and_list.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_patient_details_tests PRIVATE include)
+
+add_test(
+    NAME TC-PAT-05_PatientDetailsAndRegistrationPersistence
+    COMMAND hms_patient_details_tests
 )
 
 # Issue #17: Skip malformed CSV records

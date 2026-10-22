@@ -391,31 +391,63 @@ int main() {
     check("TC-APT-05: CSV row count unchanged after conflict rejection", countDataRows(testApptCsv) == rowsBefore);
   }
 
-  // Cancellation and Slot Re-booking (BR-06, HMS-F-021)
+
+  // Cancellation and Slot Re-booking (BR-06, HMS-F-021, HMS-F-029)
   {
     hms::FileManager sysFm(testPatientCsv, testDoctorCsv, testApptCsv);
     hms::HospitalSystem sys(sysFm);
 
-    // Cancel appointment A0001
+    // Cancel appointment A0001.
     hms::OpResult cancelRes = sys.cancelAppointment("A0001", true);
     check("Cancellation of A0001 succeeds", cancelRes.success);
 
+    // Verify the in-memory appointment status.
     const hms::Appointment *cancelled = sys.findAppointment("A0001");
     check("A0001 found after cancellation", cancelled != nullptr);
+
     if (cancelled) {
       check("A0001 status changed to Cancelled", cancelled->isCancelled());
     }
 
-    // Now re-book Doctor D001 at 2026-10-15 10:00 for Patient P002
+    // HMS-F-029: Verify the CSV is updated immediately,
+    // before creating a new HospitalSystem instance.
+    const std::string csvAfterCancellation = readFile(testApptCsv);
+
+    check("HMS-F-029: CSV contains A0001 after cancellation",
+          csvAfterCancellation.find("A0001") != std::string::npos);
+
+    check("HMS-F-029: CSV contains Cancelled status immediately",
+          csvAfterCancellation.find("Cancelled") != std::string::npos);
+
+    check("HMS-F-029: CSV retains 2 existing appointment records",
+          countDataRows(testApptCsv) == 2);
+
+    // Re-book Doctor D001 at 2026-10-15 10:00 for Patient P002.
+    // The cancelled appointment should not block the time slot.
     std::string apptId3;
     std::string error;
-    bool rebookOk = sys.bookAppointment("P002", "D001", "2026-10-15", "10:00", apptId3, error);
-    check("Re-booking previously cancelled slot succeeds", rebookOk);
-    check("Re-booked appointment gets new sequential ID A0003 (never reuses A0001)", apptId3 == "A0003");
 
-    // Cancelled record A0001 remains in appointments.csv alongside A0002 and A0003 (3 total)
-    check("appointments.csv retains cancelled appointment (3 data rows total)", countDataRows(testApptCsv) == 3);
+    bool rebookOk =
+        sys.bookAppointment("P002", "D001", "2026-10-15", "10:00",
+                            apptId3, error);
+
+    check("Re-booking previously cancelled slot succeeds", rebookOk);
+
+    check("Re-booked appointment gets new sequential ID A0003",
+          apptId3 == "A0003");
+
+    // After re-booking, A0001 must still be present as Cancelled,
+    // alongside A0002 and the new A0003.
+    check("appointments.csv retains 3 data rows after re-booking",
+          countDataRows(testApptCsv) == 3);
+
+    const std::string csvAfterRebooking = readFile(testApptCsv);
+
+    check("HMS-F-029: Cancelled record remains in CSV after re-booking",
+          csvAfterRebooking.find("A0001") != std::string::npos &&
+          csvAfterRebooking.find("Cancelled") != std::string::npos);
   }
+
 
   // Application Restart Retention and Sequential ID Continuity (HMS-F-030)
   {
