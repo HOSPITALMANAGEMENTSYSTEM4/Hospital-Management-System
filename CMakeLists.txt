@@ -224,3 +224,15 @@ add_test(
     NAME TC-DOC-05_ViewAndListDoctors
     COMMAND hms_view_list_doctors_tests
 )
+
+# Startup CSV loading acceptance test (Issue #15 / TC-PER-01)
+add_executable(hms_startup_csv_loading_tests
+    tests/test_startup_csv_loading.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+target_include_directories(hms_startup_csv_loading_tests PRIVATE include)
+add_test(NAME TC-PER-01_StartupCSVLoading COMMAND hms_startup_csv_loading_tests)

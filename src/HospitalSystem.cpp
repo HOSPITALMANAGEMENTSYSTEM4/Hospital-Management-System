@@ -113,6 +113,15 @@ FileManager &HospitalSystem::getFileManager() {
   return fileManager_;
 }
 
+void HospitalSystem::displayStartupRecords() {
+  // The listing methods use FileManager's CSV loaders and handle empty or
+  // missing files without creating or overwriting data files.
+  std::cout << "\n=== Records Loaded at Startup ===\n";
+  listPatients();
+  listDoctors();
+  viewAppointments();
+}
+
 void HospitalSystem::run() {
   while (true) {
     std::cout << "\n=== Hospital Management System ===\n"
@@ -165,7 +174,7 @@ void HospitalSystem::run() {
       listDoctors();
     } else {
       std::cout << "Invalid choice. Enter a value from 0 to 10.\n";
-    } 
+    }
   }
 }
 
