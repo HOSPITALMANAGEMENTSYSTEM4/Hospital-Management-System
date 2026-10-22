@@ -74,7 +74,7 @@ void testViewPatientDetails() {
     std::filesystem::remove(path);
     writePatients(path);
 
-    const std::string output = runMenu(path, "6\nP102\n0\n");
+    const std::string output = runMenu(path, "1\n2\nP102\n0\n4\n");
 
     check(output.find("Patient ID: P102") != std::string::npos,
           "Option 4 displays the requested patient ID");
@@ -97,7 +97,7 @@ void testUnknownPatientDetails() {
     std::filesystem::remove(path);
     writePatients(path);
 
-    const std::string output = runMenu(path, "6\nP999\n0\n");
+    const std::string output = runMenu(path, "1\n2\nP999\n0\n4\n");
 
     check(output.find("No matching patient found") != std::string::npos,
           "Option 4 reports an unknown patient ID");
@@ -110,7 +110,7 @@ void testListAllPatients() {
     std::filesystem::remove(path);
     writePatients(path);
 
-    const std::string output = runMenu(path, "7\n0\n");
+    const std::string output = runMenu(path, "1\n3\n0\n4\n");
 
     check(output.find("P101 | Anita Sharma") != std::string::npos,
           "Option 5 lists the first patient");
@@ -126,7 +126,7 @@ void testEmptyPatientList() {
     const std::string path = "build/test_list_empty.csv";
     std::filesystem::remove(path);
 
-    const std::string output = runMenu(path, "7\n0\n");
+    const std::string output = runMenu(path, "1\n3\n0\n4\n");
 
     check(output.find("No patients registered") != std::string::npos,
           "Option 5 handles an empty patient list");
@@ -138,8 +138,9 @@ void testPatientRegistrationPersistsImmediately() {
     const std::string path = "build/test_register_patient.csv";
     std::filesystem::remove(path);
 
-    // Select Register Patient, enter details, and then exit.
+    // Select Patient Management (1), Register Patient (1), enter details, return (0), exit (4).
     const std::string input =
+        "1\n"
         "1\n"
         "P201\n"
         "Test Patient\n"
@@ -148,7 +149,8 @@ void testPatientRegistrationPersistsImmediately() {
         "9876543210\n"
         "Bangalore\n"
         "None\n"
-        "0\n";
+        "0\n"
+        "4\n";
 
     const std::string output = runMenu(path, input);
 

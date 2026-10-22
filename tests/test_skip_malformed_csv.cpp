@@ -63,9 +63,9 @@ void testSkipMalformedPatientRecords() {
     check(malformedCount == 3,
           "Three malformed patient records are counted");
 
-    // Select List all patients (menu option 7), then Exit (option 0).
+    // Select Patient Management (1), View All (3), Return (0), Exit (4).
     hms::HospitalSystem system(fileManager);
-    std::istringstream input("7\n0\n");
+    std::istringstream input("1\n3\n0\n4\n");
     std::ostringstream output;
 
     auto *oldInput = std::cin.rdbuf(input.rdbuf());

@@ -297,3 +297,20 @@ add_test(
     NAME TC-PER-03_SkipMalformedCSV
     COMMAND hms_skip_malformed_csv_tests
 )
+
+# Issue #20: Navigate menus and submenus (HMS-F-032, TC-UI-01)
+add_executable(hms_menu_navigation_tests
+    tests/test_menu_navigation.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_menu_navigation_tests PRIVATE include)
+
+add_test(
+    NAME TC-UI-01_MenuNavigation
+    COMMAND hms_menu_navigation_tests
+)

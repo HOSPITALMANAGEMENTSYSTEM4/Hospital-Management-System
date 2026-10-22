@@ -81,7 +81,7 @@ void testMissingFiles(const std::string &scenario,
 
     hms::HospitalSystem system(dataDir.string());
 
-    std::istringstream input("0\n");
+    std::istringstream input("4\n");
     std::ostringstream output;
 
     auto *oldInput = std::cin.rdbuf(input.rdbuf());
@@ -142,6 +142,7 @@ void testPatientRegistrationCreatesMissingCsv() {
 
     std::istringstream input(
         "1\n"
+        "1\n"
         "P900\n"
         "Alice Patient\n"
         "30\n"
@@ -149,7 +150,8 @@ void testPatientRegistrationCreatesMissingCsv() {
         "9876543210\n"
         "123 Test Street\n"
         "None\n"
-        "0\n");
+        "0\n"
+        "4\n");
 
     std::ostringstream output;
 
