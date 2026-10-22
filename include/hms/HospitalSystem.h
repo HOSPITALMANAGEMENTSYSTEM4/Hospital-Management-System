@@ -23,6 +23,7 @@ public:
   explicit HospitalSystem(FileManager fileManager);
   explicit HospitalSystem(const std::string &dataDir);
 
+  void displayStartupRecords();
   void run();
   void addDoctor();
   void viewDoctorDetails();
