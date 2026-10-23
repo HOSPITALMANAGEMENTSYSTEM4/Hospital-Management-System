@@ -348,3 +348,22 @@ add_test(
     NAME TC-PAT-06_UpdatePatientDetails
     COMMAND hms_update_patient_details_tests
 )
+
+
+
+# Issue #28: Prevent patient ID edits (TC-PAT-07)
+add_executable(hms_prevent_patient_id_edits_tests
+    tests/test_prevent_patient_id_edits.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_prevent_patient_id_edits_tests PRIVATE include)
+
+add_test(
+    NAME TC-PAT-07_PreventPatientIdEdits
+    COMMAND hms_prevent_patient_id_edits_tests
+)
