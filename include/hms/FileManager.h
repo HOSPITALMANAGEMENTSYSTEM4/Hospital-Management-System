@@ -30,6 +30,16 @@ public:
         std::string &errorMessage
     ) const;
 
+    bool savePatients(
+        const std::vector<Patient> &patients,
+        std::string &errorMessage
+    ) const;
+
+    bool updatePatient(
+        const Patient &patient,
+        std::string &errorMessage
+    ) const;
+
     // Doctor operations
     std::vector<Doctor> loadDoctors(
         std::size_t *malformedCount = nullptr
