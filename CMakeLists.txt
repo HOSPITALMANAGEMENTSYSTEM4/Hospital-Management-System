@@ -383,3 +383,21 @@ add_test(
     NAME TC-DOC-06_UpdateDoctorDetails
     COMMAND hms_update_doctor_details_tests
 )
+
+
+# Issue #30: Prevent Doctor ID edits (TC-DOC-07)
+add_executable(hms_prevent_doctor_id_edits_tests
+    tests/test_prevent_doctor_id_edits.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_prevent_doctor_id_edits_tests PRIVATE include)
+
+add_test(
+    NAME TC-DOC-07_PreventDoctorIdEdits
+    COMMAND hms_prevent_doctor_id_edits_tests
+)
