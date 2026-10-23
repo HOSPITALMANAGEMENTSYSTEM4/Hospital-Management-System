@@ -23,35 +23,45 @@
 //   systematically cover all 4 interactive menus across the 4 primary invalid input
 //   vectors (16 menu cases) plus 4 key field-validation input boundaries (4 field cases).
 //
+// Strengthened Recovery Verification:
+//   - Uses countOccurrences() to assert that after each invalid menu input, the
+//     appropriate menu header and prompt appear again (count == 2) rather than merely once.
+//   - Verifies absence of incorrect menu headers (e.g. Doctor or Appointment menu headers
+//     must not appear during a Patient menu recovery test).
+//   - For field validation cases (17-20), verifies that following an invalid field entry
+//     and error display, the parent submenu is re-displayed cleanly and processes
+//     subsequent valid navigation/exit choices without data corruption.
+//
 // 20-Case Test Matrix Definition:
 //   --------------------------------------------------------------------------
 //   Case | Target Component        | Invalid Input | Expected Observable Behavior
 //   --------------------------------------------------------------------------
-//   01   | Main Menu               | "9"           | Error displayed, re-prompts Main Menu, exits cleanly on '4'
-//   02   | Main Menu               | "abc"         | Error displayed, re-prompts Main Menu, exits cleanly on '4'
-//   03   | Main Menu               | "-1"          | Error displayed, re-prompts Main Menu, exits cleanly on '4'
-//   04   | Main Menu               | ""            | Error displayed, re-prompts Main Menu, exits cleanly on '4'
-//   05   | Patient Submenu         | "9"           | Error displayed, re-prompts Patient Submenu, returns '0', exits '4'
-//   06   | Patient Submenu         | "abc"         | Error displayed, re-prompts Patient Submenu, returns '0', exits '4'
-//   07   | Patient Submenu         | "-1"          | Error displayed, re-prompts Patient Submenu, returns '0', exits '4'
-//   08   | Patient Submenu         | ""            | Error displayed, re-prompts Patient Submenu, returns '0', exits '4'
-//   09   | Doctor Submenu          | "9"           | Error displayed, re-prompts Doctor Submenu, returns '0', exits '4'
-//   10   | Doctor Submenu          | "abc"         | Error displayed, re-prompts Doctor Submenu, returns '0', exits '4'
-//   11   | Doctor Submenu          | "-1"          | Error displayed, re-prompts Doctor Submenu, returns '0', exits '4'
-//   12   | Doctor Submenu          | ""            | Error displayed, re-prompts Doctor Submenu, returns '0', exits '4'
-//   13   | Appointment Submenu     | "9"           | Error displayed, re-prompts Appt Submenu, returns '0', exits '4'
-//   14   | Appointment Submenu     | "abc"         | Error displayed, re-prompts Appt Submenu, returns '0', exits '4'
-//   15   | Appointment Submenu     | "-1"          | Error displayed, re-prompts Appt Submenu, returns '0', exits '4'
-//   16   | Appointment Submenu     | ""            | Error displayed, re-prompts Appt Submenu, returns '0', exits '4'
-//   17   | Patient Age Field       | "abc"         | Error displayed, re-prompts Patient Submenu, no record created
-//   18   | Patient Age Field       | "999"         | Error displayed, re-prompts Patient Submenu, no record created
-//   19   | Appt Date Field         | "2026-02-30"  | Error displayed, re-prompts Appt Submenu, no record created
-//   20   | Appt Time Field         | "25:99"       | Error displayed, re-prompts Appt Submenu, no record created
+//   01   | Main Menu               | "9"           | Error displayed, Main Menu re-prompts (count=2), exits on '4'
+//   02   | Main Menu               | "abc"         | Error displayed, Main Menu re-prompts (count=2), exits on '4'
+//   03   | Main Menu               | "-1"          | Error displayed, Main Menu re-prompts (count=2), exits on '4'
+//   04   | Main Menu               | ""            | Error displayed, Main Menu re-prompts (count=2), exits on '4'
+//   05   | Patient Submenu         | "9"           | Error displayed, Patient Menu re-prompts (count=2), return '0', exit '4'
+//   06   | Patient Submenu         | "abc"         | Error displayed, Patient Menu re-prompts (count=2), return '0', exit '4'
+//   07   | Patient Submenu         | "-1"          | Error displayed, Patient Menu re-prompts (count=2), return '0', exit '4'
+//   08   | Patient Submenu         | ""            | Error displayed, Patient Menu re-prompts (count=2), return '0', exit '4'
+//   09   | Doctor Submenu          | "9"           | Error displayed, Doctor Menu re-prompts (count=2), return '0', exit '4'
+//   10   | Doctor Submenu          | "abc"         | Error displayed, Doctor Menu re-prompts (count=2), return '0', exit '4'
+//   11   | Doctor Submenu          | "-1"          | Error displayed, Doctor Menu re-prompts (count=2), return '0', exit '4'
+//   12   | Doctor Submenu          | ""            | Error displayed, Doctor Menu re-prompts (count=2), return '0', exit '4'
+//   13   | Appointment Submenu     | "9"           | Error displayed, Appt Menu re-prompts (count=2), return '0', exit '4'
+//   14   | Appointment Submenu     | "abc"         | Error displayed, Appt Menu re-prompts (count=2), return '0', exit '4'
+//   15   | Appointment Submenu     | "-1"          | Error displayed, Appt Menu re-prompts (count=2), return '0', exit '4'
+//   16   | Appointment Submenu     | ""            | Error displayed, Appt Menu re-prompts (count=2), return '0', exit '4'
+//   17   | Patient Age Field       | "abc"         | Error displayed, Patient Menu re-displayed (count=2), no record created
+//   18   | Patient Age Field       | "999"         | Error displayed, Patient Menu re-displayed (count=2), no record created
+//   19   | Appt Date Field         | "2026-02-30"  | Error displayed, Appt Menu re-displayed (count=2), no record created
+//   20   | Appt Time Field         | "25:99"       | Error displayed, Appt Menu re-displayed (count=2), no record created
 //   --------------------------------------------------------------------------
 // ============================================================================
 
 #include "hms/HospitalSystem.h"
 
+#include <cstddef>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -65,6 +75,21 @@ namespace {
 int g_casesPassed = 0;
 int g_casesFailed = 0;
 int g_crashCount  = 0;
+
+// Count non-overlapping occurrences of needle in haystack.
+std::size_t countOccurrences(const std::string &haystack,
+                             const std::string &needle) {
+  if (needle.empty()) {
+    return 0;
+  }
+  std::size_t count = 0;
+  std::size_t pos   = 0;
+  while ((pos = haystack.find(needle, pos)) != std::string::npos) {
+    ++count;
+    pos += needle.size();
+  }
+  return count;
+}
 
 // Read entire file content into a string for strict integrity verification.
 std::string readFileContent(const std::filesystem::path &filePath) {
@@ -212,6 +237,13 @@ int main() {
   // =========================================================================
   // Menu Input Cases 01 to 04: Main Menu
   // Inputs: "9" (out-of-range), "abc" (non-numeric), "-1" (negative), "" (empty)
+  // Verification:
+  //   - Main Menu header displayed exactly 2 times (initial + redisplay)
+  //   - Choice prompt displayed exactly 2 times
+  //   - Main menu error displayed exactly once
+  //   - Submenu headers (Patient, Doctor, Appointment) do not appear (count == 0)
+  //   - Option '4' exits cleanly
+  //   - Zero crashes and CSV files unmodified
   // =========================================================================
   std::cout << "--- Testing Category A: Main Menu Invalid Input Vectors (Cases 01-04) ---\n";
 
@@ -219,53 +251,77 @@ int main() {
   {
     const RunResult res = executeInteractiveSession(dataDir, "9\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(mainMenuError) != std::string::npos &&
-                      res.output.find(choicePrompt) != std::string::npos &&
+                      countOccurrences(res.output, mainMenuError) == 1 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 2 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(1, "Main menu out-of-range choice ('9')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Menu re-prompt count mismatch or state corruption");
   }
 
   // Case 02: Main menu non-numeric input "abc"
   {
     const RunResult res = executeInteractiveSession(dataDir, "abc\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(mainMenuError) != std::string::npos &&
-                      res.output.find(choicePrompt) != std::string::npos &&
+                      countOccurrences(res.output, mainMenuError) == 1 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 2 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(2, "Main menu non-numeric text ('abc')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Menu re-prompt count mismatch or state corruption");
   }
 
   // Case 03: Main menu negative choice "-1"
   {
     const RunResult res = executeInteractiveSession(dataDir, "-1\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(mainMenuError) != std::string::npos &&
-                      res.output.find(choicePrompt) != std::string::npos &&
+                      countOccurrences(res.output, mainMenuError) == 1 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 2 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(3, "Main menu negative choice ('-1')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Menu re-prompt count mismatch or state corruption");
   }
 
   // Case 04: Main menu empty input line ""
   {
     const RunResult res = executeInteractiveSession(dataDir, "\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(mainMenuError) != std::string::npos &&
-                      res.output.find(choicePrompt) != std::string::npos &&
+                      countOccurrences(res.output, mainMenuError) == 1 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 2 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(4, "Main menu empty line ('')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Menu re-prompt count mismatch or state corruption");
   }
 
   // =========================================================================
   // Menu Input Cases 05 to 08: Patient Management Submenu
   // Inputs: "9", "abc", "-1", ""
+  // Verification:
+  //   - Patient Submenu header displayed exactly 2 times (initial + redisplay)
+  //   - Submenu error displayed exactly once
+  //   - Main menu header displayed exactly 2 times (initial entry + return on '0')
+  //   - Choice prompt displayed exactly 4 times (Main, Patient, Patient re-prompt, Main re-prompt)
+  //   - Doctor and Appointment menu headers do not appear (count == 0)
+  //   - Clean exit via Main menu '4'
+  //   - Zero crashes and CSV files unmodified
   // =========================================================================
   std::cout << "\n--- Testing Category B: Patient Submenu Invalid Input Vectors (Cases 05-08) ---\n";
 
@@ -273,53 +329,77 @@ int main() {
   {
     const RunResult res = executeInteractiveSession(dataDir, "1\n9\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(patientMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, patientMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(5, "Patient submenu out-of-range choice ('9')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 06: Patient submenu non-numeric input "abc"
   {
     const RunResult res = executeInteractiveSession(dataDir, "1\nabc\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(patientMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, patientMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(6, "Patient submenu non-numeric text ('abc')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 07: Patient submenu negative choice "-1"
   {
     const RunResult res = executeInteractiveSession(dataDir, "1\n-1\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(patientMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, patientMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(7, "Patient submenu negative choice ('-1')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 08: Patient submenu empty input line ""
   {
     const RunResult res = executeInteractiveSession(dataDir, "1\n\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(patientMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, patientMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(8, "Patient submenu empty line ('')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // =========================================================================
   // Menu Input Cases 09 to 12: Doctor Management Submenu
   // Inputs: "9", "abc", "-1", ""
+  // Verification:
+  //   - Doctor Submenu header displayed exactly 2 times (initial + redisplay)
+  //   - Submenu error displayed exactly once
+  //   - Main menu header displayed exactly 2 times (initial entry + return on '0')
+  //   - Choice prompt displayed exactly 4 times
+  //   - Patient and Appointment menu headers do not appear (count == 0)
+  //   - Clean exit via Main menu '4'
+  //   - Zero crashes and CSV files unmodified
   // =========================================================================
   std::cout << "\n--- Testing Category C: Doctor Submenu Invalid Input Vectors (Cases 09-12) ---\n";
 
@@ -327,53 +407,77 @@ int main() {
   {
     const RunResult res = executeInteractiveSession(dataDir, "2\n9\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(doctorMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(9, "Doctor submenu out-of-range choice ('9')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 10: Doctor submenu non-numeric input "abc"
   {
     const RunResult res = executeInteractiveSession(dataDir, "2\nabc\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(doctorMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(10, "Doctor submenu non-numeric text ('abc')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 11: Doctor submenu negative choice "-1"
   {
     const RunResult res = executeInteractiveSession(dataDir, "2\n-1\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(doctorMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(11, "Doctor submenu negative choice ('-1')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 12: Doctor submenu empty input line ""
   {
     const RunResult res = executeInteractiveSession(dataDir, "2\n\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(doctorMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(12, "Doctor submenu empty line ('')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // =========================================================================
   // Menu Input Cases 13 to 16: Appointment Management Submenu
   // Inputs: "9", "abc", "-1", ""
+  // Verification:
+  //   - Appointment Submenu header displayed exactly 2 times (initial + redisplay)
+  //   - Submenu error displayed exactly once
+  //   - Main menu header displayed exactly 2 times (initial entry + return on '0')
+  //   - Choice prompt displayed exactly 4 times
+  //   - Patient and Doctor menu headers do not appear (count == 0)
+  //   - Clean exit via Main menu '4'
+  //   - Zero crashes and CSV files unmodified
   // =========================================================================
   std::cout << "\n--- Testing Category D: Appointment Submenu Invalid Input Vectors (Cases 13-16) ---\n";
 
@@ -381,52 +485,76 @@ int main() {
   {
     const RunResult res = executeInteractiveSession(dataDir, "3\n9\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(appointmentMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(13, "Appointment submenu out-of-range choice ('9')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 14: Appointment submenu non-numeric input "abc"
   {
     const RunResult res = executeInteractiveSession(dataDir, "3\nabc\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(appointmentMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(14, "Appointment submenu non-numeric text ('abc')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 15: Appointment submenu negative choice "-1"
   {
     const RunResult res = executeInteractiveSession(dataDir, "3\n-1\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(appointmentMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(15, "Appointment submenu negative choice ('-1')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // Case 16: Appointment submenu empty input line ""
   {
     const RunResult res = executeInteractiveSession(dataDir, "3\n\n0\n4\n");
     const bool pass = !res.crashed &&
-                      res.output.find(submenuError) != std::string::npos &&
-                      res.output.find(appointmentMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, submenuError) == 1 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, choicePrompt) == 4 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(16, "Appointment submenu empty line ('')", pass,
-                     res.crashed ? res.crashReason : "Output mismatch or state corruption");
+                     res.crashed ? res.crashReason : "Submenu re-prompt count mismatch or state corruption");
   }
 
   // =========================================================================
   // Field Validation Cases 17 to 20: Registration & Booking Input Boundaries
+  // Verification:
+  //   - Expected field-level error message is output exactly once
+  //   - Parent submenu header is redisplayed after error (count == 2)
+  //   - Main menu header is displayed 2 times (entry + return)
+  //   - Incorrect submenu headers do NOT appear (count == 0)
+  //   - Subsequent input ('0' return to main menu, '4' exit) processes cleanly
+  //   - No invalid patient or appointment record is persisted in CSV files
+  //   - Zero crashes
   // =========================================================================
   std::cout << "\n--- Testing Category E: Field Validation Boundaries (Cases 17-20) ---\n";
 
@@ -441,12 +569,15 @@ int main() {
     const std::string input = "1\n1\nP099\nTest Patient\nabc\n0\n4\n";
     const RunResult res = executeInteractiveSession(dataDir, input);
     const bool pass = !res.crashed &&
-                      res.output.find(expectedAgeError) != std::string::npos &&
-                      res.output.find(patientMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, expectedAgeError) == 1 &&
+                      countOccurrences(res.output, patientMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(17, "Patient registration non-numeric age ('abc')", pass,
-                     res.crashed ? res.crashReason : "Error not displayed or invalid record created");
+                     res.crashed ? res.crashReason : "Error not displayed or incorrect submenu recovery");
   }
 
   // Case 18: Out-of-range patient age ("999")
@@ -456,12 +587,15 @@ int main() {
     const std::string input = "1\n1\nP099\nTest Patient\n999\n0\n4\n";
     const RunResult res = executeInteractiveSession(dataDir, input);
     const bool pass = !res.crashed &&
-                      res.output.find(expectedAgeError) != std::string::npos &&
-                      res.output.find(patientMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, expectedAgeError) == 1 &&
+                      countOccurrences(res.output, patientMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(18, "Patient registration out-of-range age ('999')", pass,
-                     res.crashed ? res.crashReason : "Error not displayed or invalid record created");
+                     res.crashed ? res.crashReason : "Error not displayed or incorrect submenu recovery");
   }
 
   // Case 19: Invalid appointment date ("2026-02-30" — 30 Feb does not exist)
@@ -471,12 +605,15 @@ int main() {
     const std::string input = "3\n1\nP001\nD001\n2026-02-30\n10:00\n0\n4\n";
     const RunResult res = executeInteractiveSession(dataDir, input);
     const bool pass = !res.crashed &&
-                      res.output.find(expectedDateError) != std::string::npos &&
-                      res.output.find(appointmentMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, expectedDateError) == 1 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(19, "Appointment booking invalid date ('2026-02-30')", pass,
-                     res.crashed ? res.crashReason : "Error not displayed or invalid record created");
+                     res.crashed ? res.crashReason : "Error not displayed or incorrect submenu recovery");
   }
 
   // Case 20: Invalid appointment time ("25:99" — 25h 99m invalid 24-hr clock)
@@ -486,12 +623,15 @@ int main() {
     const std::string input = "3\n1\nP001\nD001\n2026-11-10\n25:99\n0\n4\n";
     const RunResult res = executeInteractiveSession(dataDir, input);
     const bool pass = !res.crashed &&
-                      res.output.find(expectedTimeError) != std::string::npos &&
-                      res.output.find(appointmentMenuHeader) != std::string::npos &&
+                      countOccurrences(res.output, expectedTimeError) == 1 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 2 &&
+                      countOccurrences(res.output, mainMenuHeader) == 2 &&
+                      countOccurrences(res.output, patientMenuHeader) == 0 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 0 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     reportCaseResult(20, "Appointment booking invalid time ('25:99')", pass,
-                     res.crashed ? res.crashReason : "Error not displayed or invalid record created");
+                     res.crashed ? res.crashReason : "Error not displayed or incorrect submenu recovery");
   }
 
   // =========================================================================
@@ -511,6 +651,13 @@ int main() {
 
     const RunResult res = executeInteractiveSession(dataDir, combinedInput);
     const bool pass = !res.crashed &&
+                      countOccurrences(res.output, mainMenuError) == 4 &&
+                      countOccurrences(res.output, submenuError) == 12 &&
+                      countOccurrences(res.output, mainMenuHeader) == 8 &&
+                      countOccurrences(res.output, patientMenuHeader) == 5 &&
+                      countOccurrences(res.output, doctorMenuHeader) == 5 &&
+                      countOccurrences(res.output, appointmentMenuHeader) == 5 &&
+                      countOccurrences(res.output, choicePrompt) == 23 &&
                       res.output.find(exitMessage) != std::string::npos &&
                       checkDataIntegrity();
     if (pass) {
