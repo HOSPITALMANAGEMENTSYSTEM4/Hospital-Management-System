@@ -52,6 +52,16 @@ public:
         std::string &errorMessage
     ) const;
 
+    bool saveDoctors(
+        const std::vector<Doctor> &doctors,
+        std::string &errorMessage
+    ) const;
+
+    bool updateDoctor(
+        const Doctor &doctor,
+        std::string &errorMessage
+    ) const;
+
     // Appointment operations
     std::vector<Appointment> loadAppointments(
         std::size_t *malformedCount = nullptr

@@ -56,6 +56,29 @@ public:
   // Lookup patient by ID
   const Patient *findPatient(const std::string &patientId) const;
 
+  void updateDoctor();
+
+  // Programmatic API for updating doctor details (HMS-F-013, HMS-F-014)
+  OpResult updateDoctor(const std::string &doctorId,
+                        const std::string &name,
+                        const std::string &specialization,
+                        const std::string &department,
+                        const std::string &contactNumber,
+                        const std::string &availability);
+
+  OpResult updateDoctor(const Doctor &doctor);
+
+  bool updateDoctor(const std::string &doctorId,
+                    const std::string &name,
+                    const std::string &specialization,
+                    const std::string &department,
+                    const std::string &contactNumber,
+                    const std::string &availability,
+                    std::string &errorMessage);
+
+  // Lookup doctor by ID
+  const Doctor *findDoctor(const std::string &doctorId) const;
+
   // Programmatic API for Appointment booking (HMS-F-015)
   // Validates Patient ID, Doctor ID, date, time, checks availability,
   // generates sequential Appointment ID, and persists record with status Booked.
@@ -116,6 +139,7 @@ private:
   FileManager fileManager_;
   mutable std::vector<Appointment> appointmentsCache_;
   mutable std::vector<Patient> patientsCache_;
+  mutable std::vector<Doctor> doctorsCache_;
 };
 
 } // namespace hms
