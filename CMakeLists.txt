@@ -352,6 +352,11 @@ add_test(
 # Issue #29: Update doctor details (HMS-F-013, TC-DOC-06)
 add_executable(hms_update_doctor_details_tests
     tests/test_update_doctor_details.cpp
+
+
+# Issue #28: Prevent patient ID edits (TC-PAT-07)
+add_executable(hms_prevent_patient_id_edits_tests
+    tests/test_prevent_patient_id_edits.cpp
     src/Appointment.cpp
     src/Doctor.cpp
     src/FileManager.cpp
@@ -364,4 +369,10 @@ target_include_directories(hms_update_doctor_details_tests PRIVATE include)
 add_test(
     NAME TC-DOC-06_UpdateDoctorDetails
     COMMAND hms_update_doctor_details_tests
+)
+target_include_directories(hms_prevent_patient_id_edits_tests PRIVATE include)
+
+add_test(
+    NAME TC-PAT-07_PreventPatientIdEdits
+    COMMAND hms_prevent_patient_id_edits_tests
 )
