@@ -420,3 +420,20 @@ add_test(
     NAME TC-PER-07_HandleCSVWriteFailures
     COMMAND hms_csv_write_failures_tests
 )
+
+# Issue #37: Invalid-input crash resilience (HMS-NF-001, TC-NFR-01)
+add_executable(hms_invalid_input_crash_resilience_tests
+    tests/test_invalid_input_crash_resilience.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_invalid_input_crash_resilience_tests PRIVATE include)
+
+add_test(
+    NAME TC-NFR-01_InvalidInputCrashResilience
+    COMMAND hms_invalid_input_crash_resilience_tests
+)
