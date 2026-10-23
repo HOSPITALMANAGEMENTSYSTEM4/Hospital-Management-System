@@ -29,9 +29,32 @@ public:
   void viewDoctorDetails();
   void listDoctors();
 
-  // Interactive booking and view workflows
   void bookAppointment();
   void viewAppointments();
+  void updatePatient();
+
+  // Programmatic API for updating patient details (HMS-F-006, HMS-F-007)
+  OpResult updatePatient(const std::string &patientId,
+                         const std::string &name,
+                         int age,
+                         const std::string &gender,
+                         const std::string &contactNumber,
+                         const std::string &address,
+                         const std::string &medicalHistory = "");
+
+  OpResult updatePatient(const Patient &patient);
+
+  bool updatePatient(const std::string &patientId,
+                     const std::string &name,
+                     int age,
+                     const std::string &gender,
+                     const std::string &contactNumber,
+                     const std::string &address,
+                     const std::string &medicalHistory,
+                     std::string &errorMessage);
+
+  // Lookup patient by ID
+  const Patient *findPatient(const std::string &patientId) const;
 
   // Programmatic API for Appointment booking (HMS-F-015)
   // Validates Patient ID, Doctor ID, date, time, checks availability,
@@ -92,6 +115,7 @@ private:
 
   FileManager fileManager_;
   mutable std::vector<Appointment> appointmentsCache_;
+  mutable std::vector<Patient> patientsCache_;
 };
 
 } // namespace hms

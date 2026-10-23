@@ -284,6 +284,119 @@ bool FileManager::savePatient(const Patient &patient,
   return true;
 }
 
+bool FileManager::savePatients(const std::vector<Patient> &patients,
+                               std::string &errorMessage) const {
+  for (const auto &patient : patients) {
+    std::string validationError;
+    if (!patient.validate(validationError)) {
+      errorMessage = validationError;
+      return false;
+    }
+  }
+
+  const std::filesystem::path filePath(patientFilePath_);
+  const std::filesystem::path parent = filePath.parent_path();
+
+  std::error_code filesystemError;
+
+  if (!parent.empty()) {
+    std::filesystem::create_directories(parent, filesystemError);
+
+    if (filesystemError) {
+      errorMessage =
+          "Could not create the data directory: " + filesystemError.message();
+      return false;
+    }
+  }
+
+  const std::string tempPath = patientFilePath_ + ".tmp";
+  const std::string backupPath = patientFilePath_ + ".bak";
+
+  {
+    std::ofstream output(tempPath,
+                         std::ios::out | std::ios::trunc | std::ios::binary);
+    if (!output) {
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+
+    output << CSV_HEADER;
+    for (const auto &p : patients) {
+      output << escapeCsv(p.getId()) << ',' << escapeCsv(p.getName()) << ','
+             << p.getAge() << ',' << escapeCsv(p.getGender()) << ','
+             << escapeCsv(p.getContactNumber()) << ','
+             << escapeCsv(p.getAddress()) << ','
+             << escapeCsv(p.getMedicalHistory()) << '\n';
+    }
+
+    output.flush();
+    if (!output.good()) {
+      output.close();
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+  }
+
+  std::error_code ec;
+  if (std::filesystem::exists(filePath, ec)) {
+    std::filesystem::remove(backupPath, ec);
+    std::filesystem::rename(filePath, backupPath, ec);
+    if (ec) {
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+
+    std::filesystem::rename(tempPath, filePath, ec);
+    if (ec) {
+      std::filesystem::rename(backupPath, filePath, ec);
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+
+    std::filesystem::remove(backupPath, ec);
+  } else {
+    std::filesystem::rename(tempPath, filePath, ec);
+    if (ec) {
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool FileManager::updatePatient(const Patient &patient,
+                                std::string &errorMessage) const {
+  std::string validationError;
+  if (!patient.validate(validationError)) {
+    errorMessage = validationError;
+    return false;
+  }
+
+  std::vector<Patient> patients = loadPatients();
+  const std::string targetId = toLower(patient.getId());
+  bool found = false;
+
+  for (auto &existing : patients) {
+    if (toLower(existing.getId()) == targetId) {
+      existing = patient;
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    errorMessage = "Patient not found";
+    return false;
+  }
+
+  return savePatients(patients, errorMessage);
+}
+
 std::vector<Doctor> FileManager::loadDoctors(std::size_t *malformedCount) const {
   std::vector<Doctor> doctors;
   std::size_t skipped = 0;

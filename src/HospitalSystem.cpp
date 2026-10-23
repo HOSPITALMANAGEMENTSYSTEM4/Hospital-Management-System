@@ -184,7 +184,7 @@ void HospitalSystem::patientMenu() {
     } else if (choice == "3") {
       listPatients();
     } else if (choice == "4") {
-      std::cout << "Update patient: not yet implemented.\n";
+      updatePatient();
     } else {
       // HMS-F-033: Reject invalid menu options (non-numeric, out-of-range, empty)
       std::cout << "Invalid choice. Enter 0 to 4.\n";
@@ -422,6 +422,222 @@ void HospitalSystem::listPatients() {
   }
 }
 
+void HospitalSystem::updatePatient() {
+  std::cout << "\n--- Update Patient ---\n";
+
+  std::string id;
+  if (!readRequiredField("Enter patient ID: ", id)) {
+    return;
+  }
+
+  const std::string searchId = toUpper(trim(id));
+  const std::vector<Patient> patients = fileManager_.loadPatients();
+  const Patient *targetPatient = nullptr;
+
+  for (const Patient &patient : patients) {
+    if (toUpper(patient.getId()) == searchId) {
+      targetPatient = &patient;
+      break;
+    }
+  }
+
+  if (!targetPatient) {
+    std::cout << "Patient not found\n";
+    return;
+  }
+
+  displayPatientDetails(*targetPatient);
+
+  std::cout << "\nSelect field to update:\n"
+            << "1. Name\n"
+            << "2. Age\n"
+            << "3. Gender\n"
+            << "4. Contact number\n"
+            << "5. Address\n"
+            << "6. Medical history\n"
+            << "7. All fields\n"
+            << "0. Return\n"
+            << "Enter choice: ";
+
+  std::string choice;
+  if (!std::getline(std::cin, choice)) {
+    return;
+  }
+
+  choice = trim(choice);
+
+  if (choice == "0") {
+    return;
+  }
+
+  std::string newName = targetPatient->getName();
+  int newAge = targetPatient->getAge();
+  std::string newGender = targetPatient->getGender();
+  std::string newContact = targetPatient->getContactNumber();
+  std::string newAddress = targetPatient->getAddress();
+  std::string newMed = targetPatient->getMedicalHistory();
+
+  if (choice == "1") {
+    if (!readRequiredField("Enter new name: ", newName)) {
+      return;
+    }
+  } else if (choice == "2") {
+    std::cout << "Enter new age (0-120): ";
+    std::string ageInput;
+    if (!std::getline(std::cin, ageInput)) {
+      return;
+    }
+    if (!parseAge(trim(ageInput), newAge)) {
+      std::cout << "Age: must be a whole number from 0 to 120.\n";
+      return;
+    }
+  } else if (choice == "3") {
+    if (!readRequiredField("Enter new gender (M/F/O): ", newGender)) {
+      return;
+    }
+  } else if (choice == "4") {
+    if (!readRequiredField("Enter new contact number: ", newContact)) {
+      return;
+    }
+  } else if (choice == "5") {
+    if (!readRequiredField("Enter new address: ", newAddress)) {
+      return;
+    }
+  } else if (choice == "6") {
+    std::cout << "Enter new medical history (optional; press Enter to skip): ";
+    if (!std::getline(std::cin, newMed)) {
+      return;
+    }
+    newMed = trim(newMed);
+  } else if (choice == "7") {
+    if (!readRequiredField("Full name: ", newName)) {
+      return;
+    }
+    std::cout << "Age (0-120): ";
+    std::string ageInput;
+    if (!std::getline(std::cin, ageInput)) {
+      return;
+    }
+    if (!parseAge(trim(ageInput), newAge)) {
+      std::cout << "Age: must be a whole number from 0 to 120.\n";
+      return;
+    }
+    if (!readRequiredField("Gender (M/F/O): ", newGender) ||
+        !readRequiredField("Contact number: ", newContact) ||
+        !readRequiredField("Address: ", newAddress)) {
+      return;
+    }
+    std::cout << "Medical history (optional; press Enter to skip): ";
+    if (!std::getline(std::cin, newMed)) {
+      return;
+    }
+    newMed = trim(newMed);
+  } else {
+    std::cout << "Invalid choice. Enter 0 to 7.\n";
+    return;
+  }
+
+  const OpResult result = updatePatient(targetPatient->getId(), newName, newAge,
+                                       newGender, newContact, newAddress, newMed);
+  std::cout << result.message << '\n';
+}
+
+OpResult HospitalSystem::updatePatient(const Patient &patient) {
+  const std::string targetId = toUpper(trim(patient.getId()));
+  auto patients = fileManager_.loadPatients();
+  bool found = false;
+
+  for (auto &existing : patients) {
+    if (toUpper(existing.getId()) == targetId) {
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    return { false, "Patient not found" };
+  }
+
+  std::string validationError;
+  if (!patient.validate(validationError)) {
+    return { false, validationError };
+  }
+
+  std::string saveError;
+  if (!fileManager_.updatePatient(patient, saveError)) {
+    return { false, saveError };
+  }
+
+  return { true, "Patient updated successfully" };
+}
+
+OpResult HospitalSystem::updatePatient(const std::string &patientId,
+                                      const std::string &name,
+                                      int age,
+                                      const std::string &gender,
+                                      const std::string &contactNumber,
+                                      const std::string &address,
+                                      const std::string &medicalHistory) {
+  const std::string targetId = toUpper(trim(patientId));
+  auto patients = fileManager_.loadPatients();
+  std::string canonicalId;
+  bool found = false;
+
+  for (const auto &existing : patients) {
+    if (toUpper(existing.getId()) == targetId) {
+      canonicalId = existing.getId();
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    return { false, "Patient not found" };
+  }
+
+  Patient updated(canonicalId, name, age, gender, contactNumber, address, medicalHistory);
+
+  std::string validationError;
+  if (!updated.validate(validationError)) {
+    return { false, validationError };
+  }
+
+  std::string saveError;
+  if (!fileManager_.updatePatient(updated, saveError)) {
+    return { false, saveError };
+  }
+
+  return { true, "Patient updated successfully" };
+}
+
+bool HospitalSystem::updatePatient(const std::string &patientId,
+                                  const std::string &name,
+                                  int age,
+                                  const std::string &gender,
+                                  const std::string &contactNumber,
+                                  const std::string &address,
+                                  const std::string &medicalHistory,
+                                  std::string &errorMessage) {
+  OpResult result = updatePatient(patientId, name, age, gender, contactNumber, address, medicalHistory);
+  if (!result.success) {
+    errorMessage = result.message;
+    return false;
+  }
+  return true;
+}
+
+const Patient* HospitalSystem::findPatient(const std::string &patientId) const {
+  patientsCache_ = fileManager_.loadPatients();
+  const std::string targetId = toUpper(trim(patientId));
+
+  for (const auto &p : patientsCache_) {
+    if (toUpper(p.getId()) == targetId) {
+      return &p;
+    }
+  }
+
+  return nullptr;
+}
 
 void HospitalSystem::addDoctor() {
   std::cout << "\n--- Add Doctor ---\n";

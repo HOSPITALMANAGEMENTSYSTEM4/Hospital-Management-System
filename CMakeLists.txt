@@ -331,3 +331,20 @@ add_test(
     NAME TC-UI-02_RejectInvalidMenuOptions
     COMMAND hms_reject_invalid_menu_options_tests
 )
+
+# Issue #27: Update patient details (HMS-F-006, TC-PAT-06)
+add_executable(hms_update_patient_details_tests
+    tests/test_update_patient_details.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_update_patient_details_tests PRIVATE include)
+
+add_test(
+    NAME TC-PAT-06_UpdatePatientDetails
+    COMMAND hms_update_patient_details_tests
+)
