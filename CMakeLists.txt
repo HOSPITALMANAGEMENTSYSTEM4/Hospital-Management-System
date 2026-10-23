@@ -401,3 +401,22 @@ add_test(
     NAME TC-DOC-07_PreventDoctorIdEdits
     COMMAND hms_prevent_doctor_id_edits_tests
 )
+
+
+
+# Issue #31: Handle CSV write failures (TC-PER-07)
+add_executable(hms_csv_write_failures_tests
+    tests/test_csv_write_failures.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_csv_write_failures_tests PRIVATE include)
+
+add_test(
+    NAME TC-PER-07_HandleCSVWriteFailures
+    COMMAND hms_csv_write_failures_tests
+)
