@@ -5,6 +5,8 @@
 **Prepared:** 24 October 2026
 **Repository:** <https://github.com/HOSPITALMANAGEMENTSYSTEM4/Hospital-Management-System>
 
+**MANUAL_TESTING_VIDEO:** <https://drive.google.com/file/d/1dZwBXsWHjWfXe4_V5-LoogPxTr0uLehA/view?usp=drive_link>
+
 ---
 
 ## 1. Submission Overview
