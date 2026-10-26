@@ -252,7 +252,7 @@ void HospitalSystem::appointmentMenu() {
     } else if (choice == "1") {
       bookAppointment();
     } else if (choice == "2") {
-      viewAppointments();
+      viewAppointmentsInteractive();
     } else if (choice == "3") {
       cancelAppointmentInteractive();
     } else if (choice == "4") {
@@ -1156,9 +1156,10 @@ std::vector<Appointment> HospitalSystem::listAppointments(
   return result;
 }
 
-void HospitalSystem::viewAppointments() {
+void HospitalSystem::viewAppointments(const std::string &filterType,
+                                      const std::string &filterId) {
   std::cout << "\n--- View Appointments ---\n";
-  const auto appointments = listAppointments("ALL");
+  const auto appointments = listAppointments(filterType, filterId);
 
   if (appointments.empty()) {
     std::cout << "No appointments found.\n";
@@ -1172,6 +1173,41 @@ void HospitalSystem::viewAppointments() {
               << " | Date: " << a.getDate()
               << " | Time: " << a.getTime()
               << " | Status: " << a.getStatusString() << '\n';
+  }
+}
+
+void HospitalSystem::viewAppointmentsInteractive() {
+  std::cout << "\n=== View Appointments ===\n"
+            << "1. All Appointments\n"
+            << "2. Filter by Patient\n"
+            << "3. Filter by Doctor\n"
+            << "0. Return\n"
+            << "Enter your choice: ";
+
+  std::string choice;
+  if (!std::getline(std::cin, choice)) {
+    return;
+  }
+  choice = trim(choice);
+
+  if (choice == "0") {
+    return;
+  } else if (choice == "1") {
+    viewAppointments("ALL");
+  } else if (choice == "2") {
+    std::string patientId;
+    if (!readRequiredField("Enter patient ID: ", patientId)) {
+      return;
+    }
+    viewAppointments("PATIENT", patientId);
+  } else if (choice == "3") {
+    std::string doctorId;
+    if (!readRequiredField("Enter doctor ID: ", doctorId)) {
+      return;
+    }
+    viewAppointments("DOCTOR", doctorId);
+  } else {
+    std::cout << "Invalid choice. Enter 0 to 3.\n";
   }
 }
 

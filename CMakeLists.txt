@@ -264,7 +264,22 @@ add_test(
     COMMAND hms_ignore_cancelled_appointments_tests
 )
 
+# Appointment: view appointments in date/time order (Issue #26, HMS-F-022, TC-APT-08)
+add_executable(hms_view_appointments_date_time_order_tests
+    tests/test_view_appointments_date_time_order.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
 
+target_include_directories(hms_view_appointments_date_time_order_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-08_ViewAppointmentsDateTimeOrder
+    COMMAND hms_view_appointments_date_time_order_tests
+)
 
 # Doctor: view details and list doctors (TC-DOC-05)
 add_executable(hms_view_list_doctors_tests

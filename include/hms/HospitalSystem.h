@@ -30,7 +30,8 @@ public:
   void listDoctors();
 
   void bookAppointment();
-  void viewAppointments();
+  void viewAppointments(const std::string &filterType = "ALL",
+                        const std::string &filterId = "");
   void updatePatient();
 
   // Programmatic API for updating patient details (HMS-F-006, HMS-F-007)
@@ -132,7 +133,8 @@ private:
   void doctorMenu();
   void appointmentMenu();
 
-  // Interactive wrappers for cancellation and availability check
+  // Interactive wrappers for cancellation, availability check, and viewing
+  void viewAppointmentsInteractive();
   void cancelAppointmentInteractive();
   void checkDoctorAvailabilityInteractive();
 
