@@ -216,9 +216,6 @@ add_test(
 # Appointment: check doctor availability (Issue #24, HMS-F-020, TC-APT-06)
 add_executable(hms_check_doctor_availability_tests
     tests/test_check_doctor_availability.cpp
-# Appointment: prevent double-booking (Issue #23, HMS-F-019, TC-APT-05, TC-NFR-08)
-add_executable(hms_prevent_double_booking_tests
-    tests/test_prevent_double_booking.cpp
     src/Appointment.cpp
     src/Doctor.cpp
     src/FileManager.cpp
@@ -231,12 +228,42 @@ target_include_directories(hms_check_doctor_availability_tests PRIVATE include)
 add_test(
     NAME TC-APT-06_CheckDoctorAvailability
     COMMAND hms_check_doctor_availability_tests
+)
+
+# Appointment: prevent double-booking (Issue #23, HMS-F-019, TC-APT-05, TC-NFR-08)
+add_executable(hms_prevent_double_booking_tests
+    tests/test_prevent_double_booking.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
 target_include_directories(hms_prevent_double_booking_tests PRIVATE include)
 
 add_test(
     NAME TC-APT-05_TC-NFR-08_PreventDoubleBooking
     COMMAND hms_prevent_double_booking_tests
 )
+
+# Appointment: ignore cancelled appointments in conflicts (Issue #25, HMS-F-021, TC-APT-07 / TC-APT-05)
+add_executable(hms_ignore_cancelled_appointments_tests
+    tests/test_ignore_cancelled_appointments.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_ignore_cancelled_appointments_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-07_IgnoreCancelledAppointmentsInConflicts
+    COMMAND hms_ignore_cancelled_appointments_tests
+)
+
 
 
 # Doctor: view details and list doctors (TC-DOC-05)
