@@ -281,6 +281,23 @@ add_test(
     COMMAND hms_view_appointments_date_time_order_tests
 )
 
+# Appointment: cancel appointment (Issue #32, HMS-F-023, TC-APT-09)
+add_executable(hms_cancel_appointment_tests
+    tests/test_cancel_appointment.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_cancel_appointment_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-09_CancelAppointment
+    COMMAND hms_cancel_appointment_tests
+)
+
 # Doctor: view details and list doctors (TC-DOC-05)
 add_executable(hms_view_list_doctors_tests
     tests/test_view_list_doctors.cpp
