@@ -280,7 +280,6 @@ add_test(
     NAME TC-APT-08_ViewAppointmentsDateTimeOrder
     COMMAND hms_view_appointments_date_time_order_tests
 )
-
 # Appointment: cancel appointment (Issue #32, HMS-F-023, TC-APT-09)
 add_executable(hms_cancel_appointment_tests
     tests/test_cancel_appointment.cpp
@@ -296,6 +295,23 @@ target_include_directories(hms_cancel_appointment_tests PRIVATE include)
 add_test(
     NAME TC-APT-09_CancelAppointment
     COMMAND hms_cancel_appointment_tests
+)
+
+# Appointment: reject invalid cancellation (Issue #33, HMS-F-024, TC-APT-10)
+add_executable(hms_reject_invalid_cancellation_tests
+    tests/test_reject_invalid_cancellation.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_reject_invalid_cancellation_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-10_RejectInvalidCancellation
+    COMMAND hms_reject_invalid_cancellation_tests
 )
 
 # Doctor: view details and list doctors (TC-DOC-05)
