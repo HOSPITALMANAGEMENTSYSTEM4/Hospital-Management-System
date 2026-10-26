@@ -213,6 +213,24 @@ add_test(
     COMMAND hms_reject_unknown_doctor_tests
 )
 
+# Appointment: prevent double-booking (Issue #23, HMS-F-019, TC-APT-05, TC-NFR-08)
+add_executable(hms_prevent_double_booking_tests
+    tests/test_prevent_double_booking.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_prevent_double_booking_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-05_TC-NFR-08_PreventDoubleBooking
+    COMMAND hms_prevent_double_booking_tests
+)
+
+
 # Doctor: view details and list doctors (TC-DOC-05)
 add_executable(hms_view_list_doctors_tests
     tests/test_view_list_doctors.cpp

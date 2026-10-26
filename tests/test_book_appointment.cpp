@@ -380,6 +380,7 @@ int main() {
     hms::FileManager sysFm(testPatientCsv, testDoctorCsv, testApptCsv);
     hms::HospitalSystem sys(sysFm);
     const int rowsBefore = countDataRows(testApptCsv);
+    const std::string contentBefore = readFile(testApptCsv);
 
     // Doctor D001 is already booked on 2026-10-15 at 10:00 (A0001)
     std::string conflictId;
@@ -388,7 +389,18 @@ int main() {
     check("TC-APT-05: Double-booking same doctor at same date and time rejected", !ok);
     check("TC-APT-05: Conflict error matches specification",
           error == "Doctor not available at the requested date and time");
+    check("TC-APT-05: Output appointment ID remains empty on conflict", conflictId.empty());
     check("TC-APT-05: CSV row count unchanged after conflict rejection", countDataRows(testApptCsv) == rowsBefore);
+    check("TC-APT-05: CSV content unchanged after conflict rejection", readFile(testApptCsv) == contentBefore);
+
+    // OpResult API check
+    std::string opConflictId;
+    hms::OpResult opRes = sys.bookAppointment("P002", "D001", "2026-10-15", "10:00", opConflictId);
+    check("TC-APT-05: OpResult booking returns false on conflict", !opRes.success);
+    check("TC-APT-05: OpResult message matches specification",
+          opRes.message == "Doctor not available at the requested date and time");
+    check("TC-APT-05: OpResult output ID remains empty", opConflictId.empty());
+    check("TC-APT-05: CSV content unchanged after OpResult conflict", readFile(testApptCsv) == contentBefore);
   }
 
 
