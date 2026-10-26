@@ -213,6 +213,9 @@ add_test(
     COMMAND hms_reject_unknown_doctor_tests
 )
 
+# Appointment: check doctor availability (Issue #24, HMS-F-020, TC-APT-06)
+add_executable(hms_check_doctor_availability_tests
+    tests/test_check_doctor_availability.cpp
 # Appointment: prevent double-booking (Issue #23, HMS-F-019, TC-APT-05, TC-NFR-08)
 add_executable(hms_prevent_double_booking_tests
     tests/test_prevent_double_booking.cpp
@@ -223,6 +226,11 @@ add_executable(hms_prevent_double_booking_tests
     src/Patient.cpp
 )
 
+target_include_directories(hms_check_doctor_availability_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-06_CheckDoctorAvailability
+    COMMAND hms_check_doctor_availability_tests
 target_include_directories(hms_prevent_double_booking_tests PRIVATE include)
 
 add_test(
