@@ -213,6 +213,24 @@ add_test(
     COMMAND hms_reject_unknown_doctor_tests
 )
 
+# Appointment: check doctor availability (Issue #24, HMS-F-020, TC-APT-06)
+add_executable(hms_check_doctor_availability_tests
+    tests/test_check_doctor_availability.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_check_doctor_availability_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-06_CheckDoctorAvailability
+    COMMAND hms_check_doctor_availability_tests
+)
+
+
 # Doctor: view details and list doctors (TC-DOC-05)
 add_executable(hms_view_list_doctors_tests
     tests/test_view_list_doctors.cpp
