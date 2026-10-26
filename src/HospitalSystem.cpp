@@ -350,9 +350,10 @@ void HospitalSystem::searchPatients() {
   // An exact patient ID match takes priority over name matches.
   for (const Patient &patient : patients) {
     if (toLower(patient.getId()) == normalizedQuery) {
-      displayPatientDetails(patient);
-      return;
-    }
+  displayPatientDetails(patient);
+  std::cout << "Patient search completed successfully.\n";
+  return;
+}
   }
 
   // Otherwise, display every patient whose name contains the query.
@@ -362,6 +363,7 @@ void HospitalSystem::searchPatients() {
     if (toLower(patient.getName()).find(normalizedQuery) !=
         std::string::npos) {
       displayPatientDetails(patient);
+std::cout << "Patient search completed successfully.\n";
       found = true;
     }
   }

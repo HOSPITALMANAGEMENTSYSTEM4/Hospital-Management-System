@@ -555,3 +555,20 @@ add_test(
     NAME TC-PER-08_SkipDuplicateAndOrphanRecords
     COMMAND hms_skip_duplicate_and_orphan_records_tests
 )
+
+# Issue #35: Show operation outcome messages (HMS-F-035, TC-UI-04)
+add_executable(hms_operation_outcome_messages_tests
+    tests/test_operation_outcome_messages.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_operation_outcome_messages_tests PRIVATE include)
+
+add_test(
+    NAME TC-UI-04_OperationOutcomeMessages
+    COMMAND hms_operation_outcome_messages_tests
+)
