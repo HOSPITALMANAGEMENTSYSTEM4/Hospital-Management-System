@@ -1120,8 +1120,9 @@ void HospitalSystem::bookAppointment() {
 
 std::vector<Appointment> HospitalSystem::listAppointments(
     const std::string &filterType,
-    const std::string &filterId) const {
-  const auto all = fileManager_.loadAppointments();
+    const std::string &filterId,
+    std::size_t *malformedCount) const {
+  const auto all = fileManager_.loadAppointments(malformedCount);
   std::vector<Appointment> result;
 
   const std::string filterUpper = toUpper(trim(filterType));
@@ -1159,7 +1160,12 @@ std::vector<Appointment> HospitalSystem::listAppointments(
 void HospitalSystem::viewAppointments(const std::string &filterType,
                                       const std::string &filterId) {
   std::cout << "\n--- View Appointments ---\n";
-  const auto appointments = listAppointments(filterType, filterId);
+  std::size_t malformedCount = 0;
+  const auto appointments = listAppointments(filterType, filterId, &malformedCount);
+
+  if (malformedCount > 0) {
+    std::cout << malformedCount << " malformed record(s) skipped\n";
+  }
 
   if (appointments.empty()) {
     std::cout << "No appointments found.\n";
