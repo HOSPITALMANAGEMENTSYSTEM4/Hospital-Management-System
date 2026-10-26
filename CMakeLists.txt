@@ -572,3 +572,26 @@ add_test(
     NAME TC-UI-04_OperationOutcomeMessages
     COMMAND hms_operation_outcome_messages_tests
 )
+# Issue #36: Exit cleanly (HMS-F-036, TC-UI-05)
+add_executable(hms_exit_cleanly_tests
+    tests/test_exit_cleanly.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_exit_cleanly_tests PRIVATE include)
+
+add_test(
+    NAME TC-UI-05_ExitCleanly
+    COMMAND hms_exit_cleanly_tests
+)
+# Issue #36: Verify the real executable exits with code 0.
+add_test(
+    NAME TC-UI-05_ExitProcessCode
+    COMMAND ${CMAKE_COMMAND}
+        -DHMS_EXECUTABLE=$<TARGET_FILE:hms>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_exit_process.cmake
+)
