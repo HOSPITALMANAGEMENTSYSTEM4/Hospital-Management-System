@@ -538,3 +538,20 @@ add_test(
     NAME TC-NFR-01_InvalidInputCrashResilience
     COMMAND hms_invalid_input_crash_resilience_tests
 )
+
+# Issue #34: Skip duplicate and orphan records (TC-PER-08)
+add_executable(hms_skip_duplicate_and_orphan_records_tests
+    tests/test_skip_duplicate_and_orphan_records.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_skip_duplicate_and_orphan_records_tests PRIVATE include)
+
+add_test(
+    NAME TC-PER-08_SkipDuplicateAndOrphanRecords
+    COMMAND hms_skip_duplicate_and_orphan_records_tests
+)

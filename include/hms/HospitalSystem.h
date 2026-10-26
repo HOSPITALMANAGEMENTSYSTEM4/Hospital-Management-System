@@ -106,7 +106,8 @@ public:
   // filterType: "ALL", "PATIENT", "DOCTOR"
   std::vector<Appointment> listAppointments(
       const std::string &filterType = "ALL",
-      const std::string &filterId = "") const;
+      const std::string &filterId = "",
+      std::size_t *malformedCount = nullptr) const;
 
   // Cancellation (BR-06, HMS-F-023)
   OpResult cancelAppointment(const std::string &appointmentId,

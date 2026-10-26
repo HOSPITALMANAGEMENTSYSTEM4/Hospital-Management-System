@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <unordered_set>
 #include <utility>
 
 namespace hms {
@@ -131,6 +132,16 @@ bool parseAge(const std::string &value, int &age) {
   return age >= 0 && age <= 120;
 }
 
+std::string trim(const std::string &value) {
+  const std::string whitespace = " \t\r\n";
+  const std::size_t first = value.find_first_not_of(whitespace);
+  if (first == std::string::npos) {
+    return "";
+  }
+  const std::size_t last = value.find_last_not_of(whitespace);
+  return value.substr(first, last - first + 1);
+}
+
 std::string toLower(const std::string &s) {
   std::string result = s;
   std::transform(result.begin(), result.end(), result.begin(),
@@ -177,8 +188,11 @@ std::vector<Patient> FileManager::loadPatients(std::size_t *malformedCount) cons
   skipped += parsed.malformedCount;
 
   for (const auto &row : parsed.records) {
-    if (row.size() == 7 && row[0] == "patient_id") {
-      continue;
+    if (!row.empty()) {
+      const std::string firstCol = toLower(trim(row[0]));
+      if (firstCol == "patient_id" || firstCol == "patientid") {
+        continue;
+      }
     }
     if (row.size() != 7) {
       ++skipped;
@@ -192,11 +206,24 @@ std::vector<Patient> FileManager::loadPatients(std::size_t *malformedCount) cons
     }
 
     Patient patient(row[0], row[1], age, row[3], row[4], row[5], row[6]);
-    if (patient.isValid()) {
-      patients.push_back(std::move(patient));
-    } else {
+    if (!patient.isValid()) {
       ++skipped;
+      continue;
     }
+
+    bool duplicate = false;
+    for (const auto &existing : patients) {
+      if (toLower(trim(existing.getId())) == toLower(trim(patient.getId()))) {
+        duplicate = true;
+        break;
+      }
+    }
+    if (duplicate) {
+      ++skipped;
+      continue;
+    }
+
+    patients.push_back(std::move(patient));
   }
 
   if (malformedCount) {
@@ -416,7 +443,7 @@ std::vector<Doctor> FileManager::loadDoctors(std::size_t *malformedCount) const 
 
   for (const auto &row : parsed.records) {
     if (!row.empty()) {
-      const std::string firstCol = toLower(row[0]);
+      const std::string firstCol = toLower(trim(row[0]));
       if (firstCol == "doctor_id" || firstCol == "doctorid") {
         continue;
       }
@@ -427,11 +454,24 @@ std::vector<Doctor> FileManager::loadDoctors(std::size_t *malformedCount) const 
     }
 
     Doctor doctor(row[0], row[1], row[2], row[3], row[4], row[5]);
-    if (doctor.isValid()) {
-      doctors.push_back(std::move(doctor));
-    } else {
+    if (!doctor.isValid()) {
       ++skipped;
+      continue;
     }
+
+    bool duplicate = false;
+    for (const auto &existing : doctors) {
+      if (toLower(trim(existing.getId())) == toLower(trim(doctor.getId()))) {
+        duplicate = true;
+        break;
+      }
+    }
+    if (duplicate) {
+      ++skipped;
+      continue;
+    }
+
+    doctors.push_back(std::move(doctor));
   }
 
   if (malformedCount) {
@@ -651,9 +691,26 @@ std::vector<Appointment> FileManager::loadAppointments(
   ParsedCsv parsed = parseCsv(buffer.str());
   skipped += parsed.malformedCount;
 
+  const bool checkPatients = std::filesystem::exists(patientFilePath_);
+  const bool checkDoctors = std::filesystem::exists(doctorFilePath_);
+
+  std::unordered_set<std::string> validPatientIds;
+  if (checkPatients) {
+    for (const auto &p : loadPatients()) {
+      validPatientIds.insert(toLower(trim(p.getId())));
+    }
+  }
+
+  std::unordered_set<std::string> validDoctorIds;
+  if (checkDoctors) {
+    for (const auto &d : loadDoctors()) {
+      validDoctorIds.insert(toLower(trim(d.getId())));
+    }
+  }
+
   for (const auto &row : parsed.records) {
     if (!row.empty()) {
-      const std::string firstCol = toLower(row[0]);
+      const std::string firstCol = toLower(trim(row[0]));
       if (firstCol == "appointment_id" || firstCol == "appointmentid") {
         continue;
       }
@@ -677,7 +734,7 @@ std::vector<Appointment> FileManager::loadAppointments(
 
     bool duplicate = false;
     for (const auto &existing : appointments) {
-      if (toLower(existing.getId()) == toLower(appt.getId())) {
+      if (toLower(trim(existing.getId())) == toLower(trim(appt.getId()))) {
         duplicate = true;
         break;
       }
@@ -687,6 +744,24 @@ std::vector<Appointment> FileManager::loadAppointments(
       continue;
     }
 
+   bool isOrphan = false;
+
+if (checkPatients &&
+    validPatientIds.find(toLower(trim(appt.getPatientId()))) ==
+        validPatientIds.end()) {
+    isOrphan = true;
+}
+
+if (checkDoctors &&
+    validDoctorIds.find(toLower(trim(appt.getDoctorId()))) ==
+        validDoctorIds.end()) {
+    isOrphan = true;
+}
+
+if (isOrphan) {
+    ++skipped;
+    continue;
+}
     appointments.push_back(std::move(appt));
   }
 
