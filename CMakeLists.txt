@@ -595,3 +595,22 @@ add_test(
         -DHMS_EXECUTABLE=$<TARGET_FILE:hms>
         -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_exit_process.cmake
 )
+
+
+
+# Issue #38: Robust startup with missing, empty, and malformed CSV files
+add_executable(hms_robust_startup_tests
+    tests/test_robust_startup.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_robust_startup_tests PRIVATE include)
+
+add_test(
+    NAME TC-NFR-02_RobustStartup
+    COMMAND hms_robust_startup_tests
+)
