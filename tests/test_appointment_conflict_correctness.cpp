@@ -308,7 +308,7 @@ int main() {
     const auto loaded = fm.loadAppointments();
     check("Case 3.3: Total loaded appointments is 5", loaded.size() == 5);
 
-    const hms::Appointment *a1 = system.findAppointment("A0001");
+    /*const hms::Appointment *a1 = system.findAppointment("A0001");
     const hms::Appointment *a5 = system.findAppointment("A0005");
     check("Case 3.3: A0001 found in storage", a1 != nullptr);
     check("Case 3.3: A0005 found in storage", a5 != nullptr);
@@ -320,8 +320,59 @@ int main() {
       check("Case 3.3: Both share time 09:00", a1->getTime() == "09:00" && a5->getTime() == "09:00");
       check("Case 3.3: Both have status Booked", a1->isBooked() && a5->isBooked());
       check("Case 3.3: Unique IDs confirmed (A0001 != A0005)", a1->getId() != a5->getId());
+    }*/
+        const hms::Appointment *foundA1 =
+        system.findAppointment("A0001");
+
+    std::string a1Doctor, a1Date, a1Time, a1Id;
+    bool a1Booked = false;
+
+    if (foundA1) {
+        a1Doctor = foundA1->getDoctorId();
+        a1Date = foundA1->getDate();
+        a1Time = foundA1->getTime();
+        a1Id = foundA1->getId();
+        a1Booked = foundA1->isBooked();
     }
 
+    const hms::Appointment *foundA5 =
+        system.findAppointment("A0005");
+
+    std::string a5Doctor, a5Date, a5Time, a5Id;
+    bool a5Booked = false;
+
+    if (foundA5) {
+        a5Doctor = foundA5->getDoctorId();
+        a5Date = foundA5->getDate();
+        a5Time = foundA5->getTime();
+        a5Id = foundA5->getId();
+        a5Booked = foundA5->isBooked();
+    }
+
+    check("Case 3.3: A0001 found in storage", foundA1 != nullptr);
+    check("Case 3.3: A0005 found in storage", foundA5 != nullptr);
+
+    if (foundA1 && foundA5) {
+        check("Case 3.3: A0001 is for Doctor D001",
+              a1Doctor == "D001");
+
+        check("Case 3.3: A0005 is for Doctor D002",
+              a5Doctor == "D002");
+
+        check("Case 3.3: Both share date 2026-11-10",
+              a1Date == "2026-11-10" &&
+              a5Date == "2026-11-10");
+
+        check("Case 3.3: Both share time 09:00",
+              a1Time == "09:00" &&
+              a5Time == "09:00");
+
+        check("Case 3.3: Both have status Booked",
+              a1Booked && a5Booked);
+
+        check("Case 3.3: Unique IDs confirmed (A0001 != A0005)",
+              a1Id != a5Id);
+    }
     // 3.4 Now verify D002 at 2026-11-10 09:00 is also blocked for a duplicate attempt
     std::string rejId, rejErr;
     bool rejDoc2 = system.bookAppointment("P003", "D002", "2026-11-10", "09:00", rejId, rejErr);
