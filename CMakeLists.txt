@@ -614,3 +614,21 @@ add_test(
     NAME TC-NFR-02_RobustStartup
     COMMAND hms_robust_startup_tests
 )
+
+
+# Issue #39: Data retention after normal exit and restart
+add_executable(hms_data_retention_tests
+    tests/test_data_retention.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_data_retention_tests PRIVATE include)
+
+add_test(
+    NAME TC-NFR-03_DataRetention
+    COMMAND hms_data_retention_tests
+)
