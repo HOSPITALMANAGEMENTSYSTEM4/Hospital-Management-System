@@ -666,3 +666,15 @@ add_test(
     NAME TC-NFR-08_AppointmentConflictCorrectness
     COMMAND hms_appointment_conflict_correctness_tests
 )
+
+
+# Issue #42: Modular class architecture and file I/O isolation
+add_executable(hms_architectural_class_isolation_tests
+    tests/test_architectural_class_isolation.cpp
+)
+
+add_test(
+    NAME TC-NFR-06_ArchitecturalClassIsolation
+    COMMAND hms_architectural_class_isolation_tests
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
