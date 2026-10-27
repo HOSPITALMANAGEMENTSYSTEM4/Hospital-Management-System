@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MINGW OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND WIN32))
-    add_link_options(-static-libgcc -static-libstdc++)
+    add_link_options(-static -static-libgcc -static-libstdc++)
 endif()
 
 add_executable(hms
@@ -677,4 +677,13 @@ add_test(
     NAME TC-NFR-06_ArchitecturalClassIsolation
     COMMAND hms_architectural_class_isolation_tests
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+# Issue #43: Standalone runtime and offline-operation verification.
+add_test(
+    NAME TC-NFR-09_StandaloneOffline
+    COMMAND ${CMAKE_COMMAND}
+        -DHMS_EXECUTABLE=$<TARGET_FILE:hms>
+        -DOBJDUMP=${CMAKE_OBJDUMP}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_standalone_offline.cmake
 )
