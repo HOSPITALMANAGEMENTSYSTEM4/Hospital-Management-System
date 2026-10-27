@@ -632,3 +632,20 @@ add_test(
     NAME TC-NFR-03_DataRetention
     COMMAND hms_data_retention_tests
 )
+
+# Issue #40: Usability and menu depth (HMS-NF-005, TC-NFR-05)
+add_executable(hms_usability_menu_depth_tests
+    tests/test_usability_menu_depth.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_usability_menu_depth_tests PRIVATE include)
+
+add_test(
+    NAME TC-NFR-05_UsabilityMenuDepth
+    COMMAND hms_usability_menu_depth_tests
+)
