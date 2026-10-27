@@ -649,3 +649,20 @@ add_test(
     NAME TC-NFR-05_UsabilityMenuDepth
     COMMAND hms_usability_menu_depth_tests
 )
+
+# Issue #41: Appointment conflict correctness (HMS-NF-008, TC-NFR-08)
+add_executable(hms_appointment_conflict_correctness_tests
+    tests/test_appointment_conflict_correctness.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_appointment_conflict_correctness_tests PRIVATE include)
+
+add_test(
+    NAME TC-NFR-08_AppointmentConflictCorrectness
+    COMMAND hms_appointment_conflict_correctness_tests
+)
