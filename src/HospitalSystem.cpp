@@ -275,8 +275,8 @@ void HospitalSystem::registerPatient() {
   std::string address;
   std::string medicalHistory;
 
-  if (!readRequiredField("Patient ID: ", id) ||
-      !readRequiredField("Full name: ", name)) {
+  if (!readRequiredField("Patient ID (1-10 alphanumeric characters, e.g., P001): ", id) ||
+      !readRequiredField("Full name (1-50 characters): ", name)) {
     return;
   }
 
@@ -294,12 +294,12 @@ void HospitalSystem::registerPatient() {
   }
 
   if (!readRequiredField("Gender (M/F/O): ", gender) ||
-      !readRequiredField("Contact number: ", contactNumber) ||
-      !readRequiredField("Address: ", address)) {
+      !readRequiredField("Contact number (10 digits): ", contactNumber) ||
+      !readRequiredField("Address (1-100 characters): ", address)) {
     return;
   }
 
-  std::cout << "Medical history (optional; press Enter to skip): ";
+  std::cout << "Medical history (optional, up to 200 characters; press Enter to skip): ";
 
   if (!std::getline(std::cin, medicalHistory)) {
     return;
@@ -340,7 +340,7 @@ void HospitalSystem::searchPatients() {
 
   std::string query;
 
-  if (!readRequiredField("Enter patient ID or name: ", query)) {
+  if (!readRequiredField("Enter patient ID or name (e.g., P001 or John): ", query)) {
     return;
   }
 
@@ -378,7 +378,7 @@ void HospitalSystem::viewPatientDetails() {
 
   std::string patientId;
 
-  if (!readRequiredField("Enter patient ID: ", patientId)) {
+  if (!readRequiredField("Enter patient ID: (1-10 alphanumeric characters, e.g., P001): ", patientId)) {
     return;
   }
 
@@ -428,7 +428,7 @@ void HospitalSystem::updatePatient() {
   std::cout << "\n--- Update Patient ---\n";
 
   std::string id;
-  if (!readRequiredField("Enter patient ID: ", id)) {
+  if (!readRequiredField("Enter patient ID: (1-10 alphanumeric characters, e.g., P001): ", id)) {
     return;
   }
 
@@ -480,7 +480,7 @@ void HospitalSystem::updatePatient() {
   std::string newMed = targetPatient->getMedicalHistory();
 
   if (choice == "1") {
-    if (!readRequiredField("Enter new name: ", newName)) {
+    if (!readRequiredField("Enter new name (1-50 characters): ", newName)) {
       return;
     }
   } else if (choice == "2") {
@@ -498,21 +498,21 @@ void HospitalSystem::updatePatient() {
       return;
     }
   } else if (choice == "4") {
-    if (!readRequiredField("Enter new contact number: ", newContact)) {
+    if (!readRequiredField("Enter new contact number (10 digits): ", newContact)) {
       return;
     }
   } else if (choice == "5") {
-    if (!readRequiredField("Enter new address: ", newAddress)) {
+    if (!readRequiredField("Enter new address (1-100 characters): ", newAddress)) {
       return;
     }
   } else if (choice == "6") {
-    std::cout << "Enter new medical history (optional; press Enter to skip): ";
+    std::cout << "Enter new medical history (optional, up to 200 characters; press Enter to skip): ";
     if (!std::getline(std::cin, newMed)) {
       return;
     }
     newMed = trim(newMed);
   } else if (choice == "7") {
-    if (!readRequiredField("Full name: ", newName)) {
+    if (!readRequiredField("Full name (1-50 characters): ", newName)) {
       return;
     }
     std::cout << "Age (0-120): ";
@@ -525,11 +525,11 @@ void HospitalSystem::updatePatient() {
       return;
     }
     if (!readRequiredField("Gender (M/F/O): ", newGender) ||
-        !readRequiredField("Contact number: ", newContact) ||
-        !readRequiredField("Address: ", newAddress)) {
+        !readRequiredField("Contact number (10 digits): ", newContact) ||
+        !readRequiredField("Address (1-100 characters): ", newAddress)) {
       return;
     }
-    std::cout << "Medical history (optional; press Enter to skip): ";
+    std::cout << "Medical history (optional, up to 200 characters; press Enter to skip): ";
     if (!std::getline(std::cin, newMed)) {
       return;
     }
@@ -651,12 +651,12 @@ void HospitalSystem::addDoctor() {
   std::string contactNumber;
   std::string availability;
 
-  if (!readRequiredField("Doctor ID: ", id) ||
-      !readRequiredField("Full name: ", name) ||
-      !readRequiredField("Specialization: ", specialization) ||
-      !readRequiredField("Department: ", department) ||
-      !readRequiredField("Contact number: ", contactNumber) ||
-      !readRequiredField("Availability: ", availability)) {
+  if (!readRequiredField("Doctor ID (1-10 alphanumeric characters, e.g., D001): ", id) ||
+      !readRequiredField("Full name (1-50 characters): ", name) ||
+      !readRequiredField("Specialization (1-40 characters): ", specialization) ||
+      !readRequiredField("Department (1-40 characters): ", department) ||
+      !readRequiredField("Contact number (10 digits): ", contactNumber) ||
+      !readRequiredField("Availability (1-60 characters, e.g., Mon-Fri 09:00-17:00): ", availability)) {
     return;
   }
 
@@ -691,7 +691,7 @@ void HospitalSystem::viewDoctorDetails() {
 
   std::string doctorId;
 
-  if (!readRequiredField("Enter doctor ID: ", doctorId)) {
+  if (!readRequiredField("Enter doctor ID: (1-10 alphanumeric characters, e.g., D001): ", doctorId)) {
     return;
   }
 
@@ -742,7 +742,7 @@ void HospitalSystem::searchDoctors() {
   std::string query;
 
   if (!readRequiredField(
-          "Enter doctor ID, name, or specialization: ", query)) {
+          "Enter doctor ID, name, or specialization (e.g., D001, John, Cardiology): ", query)) {
     return;
   }
 
@@ -779,7 +779,7 @@ void HospitalSystem::updateDoctor() {
   std::cout << "\n--- Update Doctor ---\n";
 
   std::string id;
-  if (!readRequiredField("Enter doctor ID: ", id)) {
+  if (!readRequiredField("Enter doctor ID: (1-10 alphanumeric characters, e.g., D001): ", id)) {
     return;
   }
 
@@ -829,31 +829,31 @@ void HospitalSystem::updateDoctor() {
   std::string newAvail = targetDoctor->getAvailability();
 
   if (choice == "1") {
-    if (!readRequiredField("Enter new name: ", newName)) {
+    if (!readRequiredField("Enter new name (1-50 characters): ", newName)) {
       return;
     }
   } else if (choice == "2") {
-    if (!readRequiredField("Enter new specialization: ", newSpec)) {
+    if (!readRequiredField("Enter new specialization (1-40 characters): ", newSpec)) {
       return;
     }
   } else if (choice == "3") {
-    if (!readRequiredField("Enter new department: ", newDept)) {
+    if (!readRequiredField("Enter new department (1-40 characters): ", newDept)) {
       return;
     }
   } else if (choice == "4") {
-    if (!readRequiredField("Enter new contact number: ", newContact)) {
+    if (!readRequiredField("Enter new contact number (10 digits): ", newContact)) {
       return;
     }
   } else if (choice == "5") {
-    if (!readRequiredField("Enter new availability: ", newAvail)) {
+    if (!readRequiredField("Enter new availability (1-60 characters, e.g., Mon-Fri 09:00-17:00): ", newAvail)) {
       return;
     }
   } else if (choice == "6") {
-    if (!readRequiredField("Full name: ", newName) ||
-        !readRequiredField("Specialization: ", newSpec) ||
-        !readRequiredField("Department: ", newDept) ||
-        !readRequiredField("Contact number: ", newContact) ||
-        !readRequiredField("Availability: ", newAvail)) {
+    if (!readRequiredField("Full name (1-50 characters): ", newName) ||
+        !readRequiredField("Specialization (1-40 characters): ", newSpec) ||
+        !readRequiredField("Department (1-40 characters): ", newDept) ||
+        !readRequiredField("Contact number (10 digits): ", newContact) ||
+        !readRequiredField("Availability (1-60 characters, e.g., Mon-Fri 09:00-17:00): ", newAvail)) {
       return;
     }
   } else {
@@ -1100,10 +1100,10 @@ void HospitalSystem::bookAppointment() {
   std::string date;
   std::string time;
 
-  if (!readRequiredField("Patient ID: ", patientId) ||
-      !readRequiredField("Doctor ID: ", doctorId) ||
+  if (!readRequiredField("Patient ID (e.g., P001): ", patientId) ||
+      !readRequiredField("Doctor ID (e.g., D001): ", doctorId) ||
       !readRequiredField("Date (YYYY-MM-DD): ", date) ||
-      !readRequiredField("Time (HH:MM): ", time)) {
+      !readRequiredField("Time (HH:MM, 24-hour format): ", time)) {
     return;
   }
 
@@ -1204,13 +1204,13 @@ void HospitalSystem::viewAppointmentsInteractive() {
     viewAppointments("ALL");
   } else if (choice == "2") {
     std::string patientId;
-    if (!readRequiredField("Enter patient ID: ", patientId)) {
+    if (!readRequiredField("Enter patient ID: (e.g., P001): ", patientId)) {
       return;
     }
     viewAppointments("PATIENT", patientId);
   } else if (choice == "3") {
     std::string doctorId;
-    if (!readRequiredField("Enter doctor ID: ", doctorId)) {
+    if (!readRequiredField("Enter doctor ID: (e.g., D001): ", doctorId)) {
       return;
     }
     viewAppointments("DOCTOR", doctorId);
@@ -1271,7 +1271,7 @@ void HospitalSystem::cancelAppointmentInteractive() {
 
   std::string appointmentId;
 
-  if (!readRequiredField("Enter appointment ID: ", appointmentId)) {
+  if (!readRequiredField("Enter appointment ID: (e.g., A0001): ", appointmentId)) {
     return;
   }
 
@@ -1295,9 +1295,9 @@ void HospitalSystem::checkDoctorAvailabilityInteractive() {
   std::string date;
   std::string time;
 
-  if (!readRequiredField("Enter doctor ID: ", doctorId) ||
+  if (!readRequiredField("Enter doctor ID: (e.g., D001): ", doctorId) ||
       !readRequiredField("Date (YYYY-MM-DD): ", date) ||
-      !readRequiredField("Time (HH:MM): ", time)) {
+      !readRequiredField("Time (HH:MM, 24-hour format): ", time)) {
     return;
   }
 
