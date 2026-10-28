@@ -948,18 +948,21 @@ bool HospitalSystem::updateDoctor(const std::string &doctorId,
   return true;
 }
 
-const Doctor* HospitalSystem::findDoctor(const std::string &doctorId) const {
+
+const Doctor* HospitalSystem::findDoctor(
+    const std::string &doctorId) const {
   doctorsCache_ = fileManager_.loadDoctors();
   const std::string targetId = toUpper(trim(doctorId));
 
-  for (const auto &d : doctorsCache_) {
-    if (toUpper(d.getId()) == targetId) {
-      return &d;
+  for (const auto &doctor : doctorsCache_) {
+    if (toUpper(doctor.getId()) == targetId) {
+      return &doctor;
     }
   }
 
   return nullptr;
 }
+
 
 std::string HospitalSystem::nextAppointmentId() const {
   int maxNum = 0;
@@ -967,43 +970,47 @@ std::string HospitalSystem::nextAppointmentId() const {
 
   for (const auto &appt : appointments) {
     const std::string &id = appt.getId();
+
     if (id.size() >= 2 && (id[0] == 'A' || id[0] == 'a')) {
       try {
-        int num = std::stoi(id.substr(1));
+        const int num = std::stoi(id.substr(1));
         if (num > maxNum) {
           maxNum = num;
         }
       } catch (...) {
-        // Skip malformed numeric parts
+        // Skip malformed numeric parts.
       }
     }
   }
 
   int nextNum = maxNum + 1;
-  std::ostringstream oss;
-  oss << 'A' << std::setw(4) << std::setfill('0') << nextNum;
-  std::string candidate = oss.str();
 
-  while (fileManager_.appointmentIdExists(candidate)) {
-    ++nextNum;
-    oss.str("");
-    oss.clear();
+  while (true) {
+    std::ostringstream oss;
     oss << 'A' << std::setw(4) << std::setfill('0') << nextNum;
-    candidate = oss.str();
-  }
+    const std::string candidate = oss.str();
 
-  return candidate;
+    if (!fileManager_.appointmentIdExists(candidate)) {
+      return candidate;
+    }
+
+    ++nextNum;
+  }
 }
 
-bool HospitalSystem::checkDoctorAvailability(const std::string &doctorId,
-                                             const std::string &date,
-                                             const std::string &time,
-                                             std::string &message) const {
+bool HospitalSystem::checkDoctorAvailability(
+    const std::string &doctorId,
+    const std::string &date,
+    const std::string &time,
+    std::string &message) const {
+
   std::string err;
+
   if (!Appointment::validateDate(date, err)) {
     message = err;
     return false;
   }
+
   if (!Appointment::validateTime(time, err)) {
     message = err;
     return false;
@@ -1015,6 +1022,7 @@ bool HospitalSystem::checkDoctorAvailability(const std::string &doctorId,
   }
 
   const auto appointments = fileManager_.loadAppointments();
+
   for (const auto &appt : appointments) {
     if (appt.conflictsWith(doctorId, date, time)) {
       message = "Doctor not available at the requested date and time";
@@ -1120,31 +1128,39 @@ void HospitalSystem::bookAppointment() {
             << "Appointment ID: " << appointmentId << '\n';
 }
 
+
 std::vector<Appointment> HospitalSystem::listAppointments(
     const std::string &filterType,
     const std::string &filterId,
     std::size_t *malformedCount) const {
+
   const auto all = fileManager_.loadAppointments(malformedCount);
   std::vector<Appointment> result;
+  result.reserve(all.size());
 
   const std::string filterUpper = toUpper(trim(filterType));
   const std::string targetId = toUpper(trim(filterId));
 
+  const bool showAll =
+      filterUpper == "ALL" || filterUpper.empty();
+  const bool filterByPatient = filterUpper == "PATIENT";
+  const bool filterByDoctor = filterUpper == "DOCTOR";
+
   for (const auto &appt : all) {
-    if (filterUpper == "ALL" || filterUpper.empty()) {
+    bool matches = showAll;
+
+    if (filterByPatient) {
+      matches = toUpper(appt.getPatientId()) == targetId;
+    } else if (filterByDoctor) {
+      matches = toUpper(appt.getDoctorId()) == targetId;
+    }
+
+    if (matches) {
       result.push_back(appt);
-    } else if (filterUpper == "PATIENT") {
-      if (toUpper(appt.getPatientId()) == targetId) {
-        result.push_back(appt);
-      }
-    } else if (filterUpper == "DOCTOR") {
-      if (toUpper(appt.getDoctorId()) == targetId) {
-        result.push_back(appt);
-      }
     }
   }
 
-  // Sort chronologically by Date, then Time, then ID (HMS-F-022, SAD 4.3)
+  // Preserve the existing chronological ordering.
   std::sort(result.begin(), result.end(),
             [](const Appointment &a, const Appointment &b) {
               if (a.getDate() != b.getDate()) {
@@ -1158,6 +1174,7 @@ std::vector<Appointment> HospitalSystem::listAppointments(
 
   return result;
 }
+
 
 void HospitalSystem::viewAppointments(const std::string &filterType,
                                       const std::string &filterId) {
