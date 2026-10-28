@@ -1,0 +1,39 @@
+name: Linux C++17 Build and Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux-build-and-test:
+    name: Build and test on Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build
+
+      - name: Show compiler version
+        run: g++ --version
+
+      - name: Configure C++17 project
+        run: |
+          cmake -S . -B build-linux \
+            -G Ninja \
+            -DCMAKE_CXX_COMPILER=g++ \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build application and all tests
+        run: cmake --build build-linux --parallel 2
+
+      - name: Run automated tests
+        run: ctest --test-dir build-linux --output-on-failure
+
+      - name: Run 1,000-record performance checks
+        run: ./build-linux/hms_performance_1000_tests
