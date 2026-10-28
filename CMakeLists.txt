@@ -715,3 +715,22 @@ add_test(
     NAME TC-SEC-01_AcceptListInputValidation
     COMMAND hms_accept_list_input_validation_tests
 )
+
+
+
+# Issue #46: Human-readable CSV files
+add_executable(hms_human_readable_csv_tests
+    tests/test_human_readable_csv.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_human_readable_csv_tests PRIVATE include)
+
+add_test(
+    NAME TC-NFR-10_HumanReadableCSV
+    COMMAND hms_human_readable_csv_tests
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
