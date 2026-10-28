@@ -1,3 +1,5 @@
+
+
 #include "hms/FileManager.h"
 #include <algorithm>
 #include <cctype>
@@ -173,6 +175,7 @@ const std::string &FileManager::getAppointmentFilePath() const {
 std::vector<Patient> FileManager::loadPatients(std::size_t *malformedCount) const {
   std::vector<Patient> patients;
   std::size_t skipped = 0;
+  std::unordered_set<std::string> seenPatientIds;
   std::ifstream input(patientFilePath_);
 
   if (!input) {
@@ -211,14 +214,10 @@ std::vector<Patient> FileManager::loadPatients(std::size_t *malformedCount) cons
       continue;
     }
 
-    bool duplicate = false;
-    for (const auto &existing : patients) {
-      if (toLower(trim(existing.getId())) == toLower(trim(patient.getId()))) {
-        duplicate = true;
-        break;
-      }
-    }
-    if (duplicate) {
+    const std::string normalizedId =
+        toLower(trim(patient.getId()));
+
+    if (!seenPatientIds.insert(normalizedId).second) {
       ++skipped;
       continue;
     }
@@ -427,6 +426,7 @@ bool FileManager::updatePatient(const Patient &patient,
 std::vector<Doctor> FileManager::loadDoctors(std::size_t *malformedCount) const {
   std::vector<Doctor> doctors;
   std::size_t skipped = 0;
+  std::unordered_set<std::string> seenDoctorIds;
   std::ifstream input(doctorFilePath_);
 
   if (!input) {
@@ -459,14 +459,10 @@ std::vector<Doctor> FileManager::loadDoctors(std::size_t *malformedCount) const 
       continue;
     }
 
-    bool duplicate = false;
-    for (const auto &existing : doctors) {
-      if (toLower(trim(existing.getId())) == toLower(trim(doctor.getId()))) {
-        duplicate = true;
-        break;
-      }
-    }
-    if (duplicate) {
+    const std::string normalizedId =
+        toLower(trim(doctor.getId()));
+
+    if (!seenDoctorIds.insert(normalizedId).second) {
       ++skipped;
       continue;
     }
@@ -673,6 +669,7 @@ bool FileManager::updateDoctor(const Doctor &doctor,
 }
 
 
+
 std::vector<Appointment> FileManager::loadAppointments(
     std::size_t *malformedCount) const {
   std::vector<Appointment> appointments;
@@ -691,91 +688,126 @@ std::vector<Appointment> FileManager::loadAppointments(
   ParsedCsv parsed = parseCsv(buffer.str());
   skipped += parsed.malformedCount;
 
-  const bool checkPatients = std::filesystem::exists(patientFilePath_);
-  const bool checkDoctors = std::filesystem::exists(doctorFilePath_);
+  const bool checkPatients =
+      std::filesystem::exists(patientFilePath_);
+  const bool checkDoctors =
+      std::filesystem::exists(doctorFilePath_);
 
   std::unordered_set<std::string> validPatientIds;
   if (checkPatients) {
-    for (const auto &p : loadPatients()) {
-      validPatientIds.insert(toLower(trim(p.getId())));
+    for (const auto &patient : loadPatients()) {
+      validPatientIds.insert(toLower(trim(patient.getId())));
     }
   }
 
   std::unordered_set<std::string> validDoctorIds;
   if (checkDoctors) {
-    for (const auto &d : loadDoctors()) {
-      validDoctorIds.insert(toLower(trim(d.getId())));
+    for (const auto &doctor : loadDoctors()) {
+      validDoctorIds.insert(toLower(trim(doctor.getId())));
     }
   }
+
+  // Track IDs in a hash set instead of scanning every prior appointment.
+  std::unordered_set<std::string> seenAppointmentIds;
+  seenAppointmentIds.reserve(parsed.records.size());
+
+  appointments.reserve(parsed.records.size());
 
   for (const auto &row : parsed.records) {
     if (!row.empty()) {
       const std::string firstCol = toLower(trim(row[0]));
-      if (firstCol == "appointment_id" || firstCol == "appointmentid") {
+      if (firstCol == "appointment_id" ||
+          firstCol == "appointmentid") {
         continue;
       }
     }
+
     if (row.size() != 6) {
       ++skipped;
       continue;
     }
 
-    AppointmentStatus st = AppointmentStatus::Booked;
-    if (!stringToStatus(row[5], st)) {
+    AppointmentStatus status = AppointmentStatus::Booked;
+    if (!stringToStatus(row[5], status)) {
       ++skipped;
       continue;
     }
 
-    Appointment appt(row[0], row[1], row[2], row[3], row[4], st);
-    if (!appt.isValid()) {
+    Appointment appointment(row[0], row[1], row[2], row[3], row[4],
+                            status);
+
+    if (!appointment.isValid()) {
       ++skipped;
       continue;
     }
 
-    bool duplicate = false;
-    for (const auto &existing : appointments) {
-      if (toLower(trim(existing.getId())) == toLower(trim(appt.getId()))) {
-        duplicate = true;
-        break;
-      }
+    bool isOrphan = false;
+
+    if (checkPatients &&
+        validPatientIds.find(
+            toLower(trim(appointment.getPatientId()))) ==
+            validPatientIds.end()) {
+      isOrphan = true;
     }
-    if (duplicate) {
+
+    if (checkDoctors &&
+        validDoctorIds.find(
+            toLower(trim(appointment.getDoctorId()))) ==
+            validDoctorIds.end()) {
+      isOrphan = true;
+    }
+
+    if (isOrphan) {
       ++skipped;
       continue;
     }
 
-   bool isOrphan = false;
+    const std::string normalizedId =
+        toLower(trim(appointment.getId()));
 
-if (checkPatients &&
-    validPatientIds.find(toLower(trim(appt.getPatientId()))) ==
-        validPatientIds.end()) {
-    isOrphan = true;
-}
+    if (!seenAppointmentIds.insert(normalizedId).second) {
+      ++skipped;
+      continue;
+    }
 
-if (checkDoctors &&
-    validDoctorIds.find(toLower(trim(appt.getDoctorId()))) ==
-        validDoctorIds.end()) {
-    isOrphan = true;
-}
-
-if (isOrphan) {
-    ++skipped;
-    continue;
-}
-    appointments.push_back(std::move(appt));
+    appointments.push_back(std::move(appointment));
   }
 
   if (malformedCount) {
     *malformedCount = skipped;
   }
+
   return appointments;
 }
 
-bool FileManager::appointmentIdExists(const std::string &appointmentId) const {
-  const std::string needle = toLower(appointmentId);
 
-  for (const Appointment &appt : loadAppointments()) {
-    if (toLower(appt.getId()) == needle) {
+bool FileManager::appointmentIdExists(
+    const std::string &appointmentId) const {
+  const std::string needle = toLower(trim(appointmentId));
+
+  std::ifstream input(appointmentFilePath_);
+  if (!input) {
+    return false;
+  }
+
+  std::ostringstream buffer;
+  buffer << input.rdbuf();
+
+  const ParsedCsv parsed = parseCsv(buffer.str());
+
+  for (const auto &row : parsed.records) {
+    if (row.empty()) {
+      continue;
+    }
+
+    const std::string id = toLower(trim(row[0]));
+
+    // Ignore the CSV header.
+    if (id == "appointment_id" || id == "appointmentid") {
+      continue;
+    }
+
+    if (id == needle) {
       return true;
     }
   }

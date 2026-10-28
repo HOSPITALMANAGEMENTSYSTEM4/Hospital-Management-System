@@ -687,3 +687,14 @@ add_test(
         -DOBJDUMP=${CMAKE_OBJDUMP}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_standalone_offline.cmake
 )
+# Issue #44: Performance benchmark with 1,000 records
+add_executable(hms_performance_1000_tests
+    tests/test_performance_1000_records.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_performance_1000_tests PRIVATE include)
