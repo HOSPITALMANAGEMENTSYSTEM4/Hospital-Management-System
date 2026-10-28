@@ -344,17 +344,27 @@ int main() {
     removeFile(malformedCsv);
   }
 
-  // Write failure / unwritable path handling (HMS-F-031)
+      // Write failure / unwritable path handling (HMS-F-031)
   {
-    // Use an unwritable / impossible path
-    hms::FileManager badFm("data/patients.csv", "Z:/non_existent_folder_xyz/doctors.csv");
+    const std::string blockerPath = "build/test_write_blocker_doctor";
+    removeFile(blockerPath);
+
+    {
+      std::ofstream blocker(blockerPath);
+      blocker << "blocker";
+    }
+
+    hms::FileManager badFm(
+        "data/patients.csv", blockerPath + "/doctors.csv");
+
     std::string err;
-    bool saved = badFm.saveDoctor(makeDoctor("DOC999"), err);
+    const bool saved = badFm.saveDoctor(makeDoctor("DOC999"), err);
+
     check("Save to unwritable path fails gracefully", !saved);
     check("Unwritable path error message populated", !err.empty());
-  }
 
-  removeFile(testDoctorCsv);
+    removeFile(blockerPath);
+  }
 
   // =========================================================================
   // Section 3: HospitalSystem End-to-End Console Workflow

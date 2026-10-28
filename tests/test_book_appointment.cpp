@@ -246,14 +246,30 @@ int main() {
     check("Row count still 2", countDataRows(testApptCsv) == 2);
   }
 
-  // Write failure handling (HMS-F-031)
+    // Write failure handling (HMS-F-031)
   {
-    hms::FileManager badFm(testPatientCsv, testDoctorCsv, "Z:/non_existent_folder_xyz/appointments.csv");
+    const std::string blockerPath = "build/test_write_blocker_appointment";
+    removeFile(blockerPath);
+
+    {
+      std::ofstream blocker(blockerPath);
+      blocker << "blocker";
+    }
+
+    hms::FileManager badFm(
+        testPatientCsv, testDoctorCsv,
+        blockerPath + "/appointments.csv");
+
     std::string err;
-    hms::Appointment appt("A0099", "P001", "D001", "2026-10-15", "10:00");
-    bool saved = badFm.saveAppointment(appt, err);
+    hms::Appointment appt(
+        "A0099", "P001", "D001", "2026-10-15", "10:00");
+
+    const bool saved = badFm.saveAppointment(appt, err);
+
     check("Save to unwritable path fails gracefully", !saved);
     check("Unwritable path error populated", !err.empty());
+
+    removeFile(blockerPath);
   }
 
   removeFile(testPatientCsv);
