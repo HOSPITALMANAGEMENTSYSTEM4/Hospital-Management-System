@@ -25,6 +25,17 @@ public:
     // unchanged when all fields are valid.
     bool validate(std::string &errorMessage) const;
 
+    // Static allow-list validation helpers (Table 4-1 rules)
+    static bool validateId(const std::string &id, std::string &errorMessage);
+    static bool validateName(const std::string &name, std::string &errorMessage);
+    static bool validateAge(int age, std::string &errorMessage);
+    static bool validateAge(const std::string &input, int &outAge, std::string &errorMessage);
+    static bool validateGender(const std::string &gender, std::string &errorMessage);
+    static bool validateContactNumber(const std::string &contactNumber, std::string &errorMessage);
+    static bool validateAddress(const std::string &address, std::string &errorMessage);
+    static bool validateMedicalHistory(const std::string &medicalHistory, std::string &errorMessage);
+    static bool passesSecurityCheck(const std::string &value, std::string &errorMessage, const std::string &fieldName);
+
     const std::string& getId() const;
     const std::string& getName() const;
     int getAge() const;

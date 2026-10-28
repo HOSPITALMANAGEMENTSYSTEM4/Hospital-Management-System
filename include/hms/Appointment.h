@@ -51,6 +51,12 @@ public:
         std::string& errorMessage
     );
 
+    static bool passesSecurityCheck(
+        const std::string& value,
+        std::string& errorMessage,
+        const std::string& fieldName
+    );
+
     bool conflictsWith(
         const std::string& docId,
         const std::string& date,
