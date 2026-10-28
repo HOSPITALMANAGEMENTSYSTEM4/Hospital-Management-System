@@ -18,13 +18,17 @@ if(NOT "${inspect_result}" STREQUAL "0")
     message(FATAL_ERROR "DLL inspection failed: ${inspect_error}")
 endif()
 
-string(TOLOWER "${imports}" imports_lower)
+# Windows static-runtime check: these are Windows DLL imports.
+# Linux ELF executables legitimately report shared-library dependencies.
+if(CMAKE_HOST_WIN32)
+    string(TOLOWER "${imports}" imports_lower)
 
-if(imports_lower MATCHES "libwinpthread" OR
-   imports_lower MATCHES "libstdc" OR
-   imports_lower MATCHES "libgcc_s")
-    message(FATAL_ERROR
-        "Unexpected GCC runtime DLL import detected: ${imports}")
+    if(imports_lower MATCHES "libwinpthread" OR
+       imports_lower MATCHES "libstdc" OR
+       imports_lower MATCHES "libgcc_s")
+        message(FATAL_ERROR
+            "Unexpected GCC runtime DLL import detected: ${imports}")
+    endif()
 endif()
 
 execute_process(
