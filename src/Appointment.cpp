@@ -26,25 +26,6 @@ std::string toUpper(const std::string &s) {
   return result;
 }
 
-// VR-14: reject commas, CR, LF, and formula-injection prefixes.
-bool passesSecurityCheck(const std::string &value, std::string &errorMessage,
-                         const std::string &fieldName) {
-  if (value.find(',') != std::string::npos ||
-      value.find('\r') != std::string::npos ||
-      value.find('\n') != std::string::npos) {
-    errorMessage = fieldName + ": commas and line breaks are not allowed.";
-    return false;
-  }
-  if (!value.empty()) {
-    const char first = value.front();
-    if (first == '=' || first == '+' || first == '-' || first == '@') {
-      errorMessage = fieldName + ": value must not begin with =, +, -, or @.";
-      return false;
-    }
-  }
-  return true;
-}
-
 std::vector<std::string> splitCsvLine(const std::string &line) {
   std::vector<std::string> tokens;
   std::string current;
@@ -64,6 +45,34 @@ std::vector<std::string> splitCsvLine(const std::string &line) {
 }
 
 } // namespace
+
+bool Appointment::passesSecurityCheck(const std::string &value,
+                                      std::string &errorMessage,
+                                      const std::string &fieldName) {
+  if (value.find(',') != std::string::npos ||
+      value.find('\r') != std::string::npos ||
+      value.find('\n') != std::string::npos) {
+    errorMessage = fieldName + ": commas and line breaks are not allowed.";
+    return false;
+  }
+  for (unsigned char c : value) {
+    // Reject C0 control characters (0x00-0x1F) and DEL (0x7F).
+    // High bytes (0x80-0xFF) are valid UTF-8 continuation/lead bytes and
+    // are not rejected here; VR-14 only mandates exclusion of control chars.
+    if (c < 0x20u || c == 0x7Fu) {
+      errorMessage = fieldName + ": non-printable control characters are not allowed.";
+      return false;
+    }
+  }
+  if (!value.empty()) {
+    const char first = value.front();
+    if (first == '=' || first == '+' || first == '-' || first == '@') {
+      errorMessage = fieldName + ": value must not begin with =, +, -, or @.";
+      return false;
+    }
+  }
+  return true;
+}
 
 std::string statusToString(AppointmentStatus status) {
   switch (status) {
@@ -154,8 +163,8 @@ bool Appointment::validateDate(const std::string &date, std::string &errorMessag
     return false;
   }
 
-  if (year < 1900 || year > 2100) {
-    errorMessage = "Appointment date: year must be between 1900 and 2100.";
+  if (year < 2000 || year > 2100) {
+    errorMessage = "Appointment date: year must be between 2000 and 2100.";
     return false;
   }
 

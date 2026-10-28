@@ -699,6 +699,22 @@ add_executable(hms_performance_1000_tests
 
 target_include_directories(hms_performance_1000_tests PRIVATE include)
 
+# Issue #47: Accept-list input validation (HMS-SR-001, TC-SEC-01)
+add_executable(hms_accept_list_input_validation_tests
+    tests/test_accept_list_input_validation.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_accept_list_input_validation_tests PRIVATE include)
+
+add_test(
+    NAME TC-SEC-01_AcceptListInputValidation
+    COMMAND hms_accept_list_input_validation_tests
+)
 
 
 

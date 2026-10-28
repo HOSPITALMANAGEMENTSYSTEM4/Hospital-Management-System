@@ -42,14 +42,8 @@ std::string toLower(std::string value) {
 
 // VR-03: age 0-120 inclusive.
 bool parseAge(const std::string &input, int &age) {
-  std::istringstream stream(input);
-  char extra = '\0';
-
-  if (!(stream >> age) || (stream >> extra)) {
-    return false;
-  }
-
-  return age >= 0 && age <= 120;
+  std::string unusedErr;
+  return Patient::validateAge(input, age, unusedErr);
 }
 
 bool readRequiredField(const std::string &prompt, std::string &value) {
