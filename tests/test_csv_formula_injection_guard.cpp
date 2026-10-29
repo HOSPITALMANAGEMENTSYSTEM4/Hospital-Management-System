@@ -34,11 +34,12 @@
 //     b) Invokes the relevant HospitalSystem API directly.
 //     c) Asserts the operation is rejected (returns false / error message set).
 //     d) Asserts no new record exists in the persistent CSV file.
-//     e) Where applicable, asserts that a pre-existing record is not mutated.
+//     e) Where applicable, asserts that a pre-existing record is not mutated
+//        either in-memory or in persistent storage.
 //
 // Convention:
-//   Follows the repository's existing test conventions (manual check()/assert
-//   harness, isolated temp directories, FileManager for post-op verification).
+//   Follows the repository's existing test conventions (manual check() harness,
+//   isolated temp directories, FileManager for post-op verification).
 // ============================================================================
 
 #include "hms/Appointment.h"
@@ -47,7 +48,6 @@
 #include "hms/HospitalSystem.h"
 #include "hms/Patient.h"
 
-#include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -113,20 +113,20 @@ struct TempDb {
 };
 
 // ---------------------------------------------------------------------------
-// Helper: seed a known-good patient so update tests have something to mutate.
-// Returns false if seeding fails (test will catch it).
+// Seeding helpers: ensure records are persisted to CSV and available in-memory
+// in the tested HospitalSystem instance.
 // ---------------------------------------------------------------------------
 bool seedPatient(hms::HospitalSystem &sys,
                  const std::string &id, const std::string &name, int age,
                  const std::string &gender, const std::string &contact,
                  const std::string &address,
                  const std::string &medHist = "None") {
-  std::string apptId, err;
-  // Use the programmatic updatePatient API first — need to register via the
-  // FileManager directly because we do not have a registerPatient() API that
-  // bypasses the interactive console.  Use FileManager::savePatient().
+  std::string err;
   hms::Patient p(id, name, age, gender, contact, address, medHist);
-  return p.isValid() && sys.getFileManager().savePatient(p, err);
+  if (!p.isValid() || !sys.getFileManager().savePatient(p, err)) {
+    return false;
+  }
+  return sys.findPatient(id) != nullptr;
 }
 
 bool seedDoctor(hms::HospitalSystem &sys,
@@ -135,15 +135,22 @@ bool seedDoctor(hms::HospitalSystem &sys,
                 const std::string &contact, const std::string &avail) {
   std::string err;
   hms::Doctor d(id, name, spec, dept, contact, avail);
-  return d.isValid() && sys.getFileManager().saveDoctor(d, err);
+  if (!d.isValid() || !sys.getFileManager().saveDoctor(d, err)) {
+    return false;
+  }
+  return sys.findDoctor(id) != nullptr;
+}
+
+bool seedForAppointment(hms::HospitalSystem &sys) {
+  return seedPatient(sys, "P099", "Test Patient", 30, "M", "9876543210", "99 Test St") &&
+         seedDoctor(sys, "D099", "Dr. Test", "Testing", "Testing", "9876543210", "Mon-Fri");
 }
 
 // ===========================================================================
 // SECTION 1: Patient – Add (registerPatient via programmatic API)
 //
 // The programmatic path that tests call is:
-//   HospitalSystem does not expose registerPatient() publicly, so we use
-//   the FileManager::savePatient() gate, which calls Patient::isValid().
+//   FileManager::savePatient() gate, which calls Patient::isValid().
 //   That in turn calls Patient::validate() -> passesSecurityCheck().
 // ===========================================================================
 
@@ -256,17 +263,19 @@ void testPatientUpdate_Comma() {
   auto sys = db.makeSystem();
 
   // Seed a valid patient.
-  assert(seedPatient(sys, "P010", "Eve White", 22, "F", "1234567890", "1 Pine St"));
+  seedPatient(sys, "P010", "Eve White", 22, "F", "1234567890", "1 Pine St");
 
   // Try to update the name to include a comma.
   hms::OpResult res = sys.updatePatient("P010", "White, Eve", 22, "F",
                                         "1234567890", "1 Pine St", "None");
   check("Update with comma in name rejected", !res.success);
 
-  // Original record must be intact.
+  // Original record must be intact both in-memory and in persistent CSV.
   const hms::Patient *p = sys.findPatient("P010");
+  const auto stored = db.makeFileManager().loadPatients();
   check("Original patient record unmodified after comma-name update failure",
-        p != nullptr && p->getName() == "Eve White");
+        p != nullptr && p->getName() == "Eve White" &&
+        stored.size() == 1 && stored[0].getName() == "Eve White");
 }
 
 void testPatientUpdate_PrefixEquals() {
@@ -274,15 +283,17 @@ void testPatientUpdate_PrefixEquals() {
   TempDb db("p_upd_eq");
   auto sys = db.makeSystem();
 
-  assert(seedPatient(sys, "P011", "Frank Grey", 45, "M", "1234567890", "2 Elm Rd"));
+  seedPatient(sys, "P011", "Frank Grey", 45, "M", "1234567890", "2 Elm Rd");
 
   hms::OpResult res = sys.updatePatient("P011", "Frank Grey", 45, "M",
                                         "1234567890", "=cmd|'/C calc'!A0", "None");
   check("Update with '=' prefix in address rejected", !res.success);
 
   const hms::Patient *p = sys.findPatient("P011");
+  const auto stored = db.makeFileManager().loadPatients();
   check("Original patient address unmodified after '='-prefix-address update failure",
-        p != nullptr && p->getAddress() == "2 Elm Rd");
+        p != nullptr && p->getAddress() == "2 Elm Rd" &&
+        stored.size() == 1 && stored[0].getAddress() == "2 Elm Rd");
 }
 
 void testPatientUpdate_LF() {
@@ -290,8 +301,8 @@ void testPatientUpdate_LF() {
   TempDb db("p_upd_lf");
   auto sys = db.makeSystem();
 
-  assert(seedPatient(sys, "P012", "Grace Tan", 33, "F", "1234567890",
-                     "3 River Ln", "Asthma"));
+  seedPatient(sys, "P012", "Grace Tan", 33, "F", "1234567890",
+              "3 River Ln", "Asthma");
 
   hms::OpResult res = sys.updatePatient("P012", "Grace Tan", 33, "F",
                                         "1234567890", "3 River Ln",
@@ -299,8 +310,10 @@ void testPatientUpdate_LF() {
   check("Update with LF in medical history rejected", !res.success);
 
   const hms::Patient *p = sys.findPatient("P012");
+  const auto stored = db.makeFileManager().loadPatients();
   check("Original medical history unmodified after LF update failure",
-        p != nullptr && p->getMedicalHistory() == "Asthma");
+        p != nullptr && p->getMedicalHistory() == "Asthma" &&
+        stored.size() == 1 && stored[0].getMedicalHistory() == "Asthma");
 }
 
 void testPatientUpdate_PrefixPlus() {
@@ -308,15 +321,17 @@ void testPatientUpdate_PrefixPlus() {
   TempDb db("p_upd_plus");
   auto sys = db.makeSystem();
 
-  assert(seedPatient(sys, "P013", "Harry Black", 55, "M", "1234567890", "4 Lake Dr"));
+  seedPatient(sys, "P013", "Harry Black", 55, "M", "1234567890", "4 Lake Dr");
 
   hms::OpResult res = sys.updatePatient("P013", "+Harry Black", 55, "M",
                                         "1234567890", "4 Lake Dr", "None");
   check("Update with '+' prefix in name rejected", !res.success);
 
   const hms::Patient *p = sys.findPatient("P013");
+  const auto stored = db.makeFileManager().loadPatients();
   check("Original patient name unmodified after '+'-prefix-name update failure",
-        p != nullptr && p->getName() == "Harry Black");
+        p != nullptr && p->getName() == "Harry Black" &&
+        stored.size() == 1 && stored[0].getName() == "Harry Black");
 }
 
 void testPatientUpdate_PrefixMinus() {
@@ -324,15 +339,17 @@ void testPatientUpdate_PrefixMinus() {
   TempDb db("p_upd_minus");
   auto sys = db.makeSystem();
 
-  assert(seedPatient(sys, "P014", "Isla Gold", 29, "F", "1234567890", "5 Hill Ave"));
+  seedPatient(sys, "P014", "Isla Gold", 29, "F", "1234567890", "5 Hill Ave");
 
   hms::OpResult res = sys.updatePatient("P014", "-Isla Gold", 29, "F",
                                         "1234567890", "5 Hill Ave", "None");
   check("Update with '-' prefix in name rejected", !res.success);
 
   const hms::Patient *p = sys.findPatient("P014");
+  const auto stored = db.makeFileManager().loadPatients();
   check("Original patient name unmodified after '-'-prefix-name update failure",
-        p != nullptr && p->getName() == "Isla Gold");
+        p != nullptr && p->getName() == "Isla Gold" &&
+        stored.size() == 1 && stored[0].getName() == "Isla Gold");
 }
 
 void testPatientUpdate_PrefixAt() {
@@ -340,15 +357,17 @@ void testPatientUpdate_PrefixAt() {
   TempDb db("p_upd_at");
   auto sys = db.makeSystem();
 
-  assert(seedPatient(sys, "P015", "Jack Silver", 42, "M", "1234567890", "6 Sea Blvd"));
+  seedPatient(sys, "P015", "Jack Silver", 42, "M", "1234567890", "6 Sea Blvd");
 
   hms::OpResult res = sys.updatePatient("P015", "@Jack Silver", 42, "M",
                                         "1234567890", "6 Sea Blvd", "None");
   check("Update with '@' prefix in name rejected", !res.success);
 
   const hms::Patient *p = sys.findPatient("P015");
+  const auto stored = db.makeFileManager().loadPatients();
   check("Original patient name unmodified after '@'-prefix-name update failure",
-        p != nullptr && p->getName() == "Jack Silver");
+        p != nullptr && p->getName() == "Jack Silver" &&
+        stored.size() == 1 && stored[0].getName() == "Jack Silver");
 }
 
 void testPatientUpdate_CR() {
@@ -356,7 +375,7 @@ void testPatientUpdate_CR() {
   TempDb db("p_upd_cr");
   auto sys = db.makeSystem();
 
-  assert(seedPatient(sys, "P016", "Kate Bronze", 37, "F", "1234567890", "7 Sky St"));
+  seedPatient(sys, "P016", "Kate Bronze", 37, "F", "1234567890", "7 Sky St");
 
   hms::OpResult res = sys.updatePatient("P016", "Kate Bronze", 37, "F",
                                         "1234567890",
@@ -364,8 +383,10 @@ void testPatientUpdate_CR() {
   check("Update with CR in address rejected", !res.success);
 
   const hms::Patient *p = sys.findPatient("P016");
+  const auto stored = db.makeFileManager().loadPatients();
   check("Original patient address unmodified after CR-address update failure",
-        p != nullptr && p->getAddress() == "7 Sky St");
+        p != nullptr && p->getAddress() == "7 Sky St" &&
+        stored.size() == 1 && stored[0].getAddress() == "7 Sky St");
 }
 
 // ===========================================================================
@@ -479,16 +500,18 @@ void testDoctorUpdate_Comma() {
   TempDb db("d_upd_comma");
   auto sys = db.makeSystem();
 
-  assert(seedDoctor(sys, "D010", "Dr. Hill", "Cardiology", "Cardiology",
-                    "1234567890", "Mon-Fri"));
+  seedDoctor(sys, "D010", "Dr. Hill", "Cardiology", "Cardiology",
+             "1234567890", "Mon-Fri");
 
   hms::OpResult res = sys.updateDoctor("D010", "Hill, Dr.", "Cardiology",
                                        "Cardiology", "1234567890", "Mon-Fri");
   check("Doctor update with comma in name rejected", !res.success);
 
   const hms::Doctor *d = sys.findDoctor("D010");
+  const auto stored = db.makeFileManager().loadDoctors();
   check("Original doctor name unmodified after comma-name update failure",
-        d != nullptr && d->getName() == "Dr. Hill");
+        d != nullptr && d->getName() == "Dr. Hill" &&
+        stored.size() == 1 && stored[0].getName() == "Dr. Hill");
 }
 
 void testDoctorUpdate_PrefixEquals() {
@@ -496,16 +519,18 @@ void testDoctorUpdate_PrefixEquals() {
   TempDb db("d_upd_eq");
   auto sys = db.makeSystem();
 
-  assert(seedDoctor(sys, "D011", "Dr. Irving", "Oncology", "Oncology",
-                    "1234567890", "Tue-Thu"));
+  seedDoctor(sys, "D011", "Dr. Irving", "Oncology", "Oncology",
+             "1234567890", "Tue-Thu");
 
   hms::OpResult res = sys.updateDoctor("D011", "Dr. Irving", "=MALICIOUS()",
                                        "Oncology", "1234567890", "Tue-Thu");
   check("Doctor update with '=' prefix in specialization rejected", !res.success);
 
   const hms::Doctor *d = sys.findDoctor("D011");
+  const auto stored = db.makeFileManager().loadDoctors();
   check("Original doctor specialization unmodified after '='-prefix update failure",
-        d != nullptr && d->getSpecialization() == "Oncology");
+        d != nullptr && d->getSpecialization() == "Oncology" &&
+        stored.size() == 1 && stored[0].getSpecialization() == "Oncology");
 }
 
 void testDoctorUpdate_LF() {
@@ -513,8 +538,8 @@ void testDoctorUpdate_LF() {
   TempDb db("d_upd_lf");
   auto sys = db.makeSystem();
 
-  assert(seedDoctor(sys, "D012", "Dr. Jones", "Radiology", "Radiology",
-                    "1234567890", "Mon-Wed"));
+  seedDoctor(sys, "D012", "Dr. Jones", "Radiology", "Radiology",
+             "1234567890", "Mon-Wed");
 
   hms::OpResult res = sys.updateDoctor("D012", "Dr. Jones", "Radiology",
                                        "Radiology", "1234567890",
@@ -522,8 +547,10 @@ void testDoctorUpdate_LF() {
   check("Doctor update with LF in availability rejected", !res.success);
 
   const hms::Doctor *d = sys.findDoctor("D012");
+  const auto stored = db.makeFileManager().loadDoctors();
   check("Original doctor availability unmodified after LF update failure",
-        d != nullptr && d->getAvailability() == "Mon-Wed");
+        d != nullptr && d->getAvailability() == "Mon-Wed" &&
+        stored.size() == 1 && stored[0].getAvailability() == "Mon-Wed");
 }
 
 void testDoctorUpdate_PrefixPlus() {
@@ -531,16 +558,18 @@ void testDoctorUpdate_PrefixPlus() {
   TempDb db("d_upd_plus");
   auto sys = db.makeSystem();
 
-  assert(seedDoctor(sys, "D013", "Dr. King", "Pediatrics", "Pediatrics",
-                    "1234567890", "Mon-Fri"));
+  seedDoctor(sys, "D013", "Dr. King", "Pediatrics", "Pediatrics",
+             "1234567890", "Mon-Fri");
 
   hms::OpResult res = sys.updateDoctor("D013", "Dr. King", "Pediatrics",
                                        "+INJECTION()", "1234567890", "Mon-Fri");
   check("Doctor update with '+' prefix in department rejected", !res.success);
 
   const hms::Doctor *d = sys.findDoctor("D013");
+  const auto stored = db.makeFileManager().loadDoctors();
   check("Original doctor department unmodified after '+'-prefix update failure",
-        d != nullptr && d->getDepartment() == "Pediatrics");
+        d != nullptr && d->getDepartment() == "Pediatrics" &&
+        stored.size() == 1 && stored[0].getDepartment() == "Pediatrics");
 }
 
 void testDoctorUpdate_CR() {
@@ -548,8 +577,8 @@ void testDoctorUpdate_CR() {
   TempDb db("d_upd_cr");
   auto sys = db.makeSystem();
 
-  assert(seedDoctor(sys, "D014", "Dr. Lee", "Surgery", "Surgery",
-                    "1234567890", "Mon-Fri"));
+  seedDoctor(sys, "D014", "Dr. Lee", "Surgery", "Surgery",
+             "1234567890", "Mon-Fri");
 
   hms::OpResult res = sys.updateDoctor("D014", std::string("Dr. Lee\r"),
                                        "Surgery", "Surgery",
@@ -557,8 +586,10 @@ void testDoctorUpdate_CR() {
   check("Doctor update with CR in name rejected", !res.success);
 
   const hms::Doctor *d = sys.findDoctor("D014");
+  const auto stored = db.makeFileManager().loadDoctors();
   check("Original doctor name unmodified after CR-name update failure",
-        d != nullptr && d->getName() == "Dr. Lee");
+        d != nullptr && d->getName() == "Dr. Lee" &&
+        stored.size() == 1 && stored[0].getName() == "Dr. Lee");
 }
 
 void testDoctorUpdate_PrefixMinus() {
@@ -566,16 +597,18 @@ void testDoctorUpdate_PrefixMinus() {
   TempDb db("d_upd_minus");
   auto sys = db.makeSystem();
 
-  assert(seedDoctor(sys, "D015", "Dr. Martin", "Endocrinology", "Endocrinology",
-                    "1234567890", "Mon-Fri"));
+  seedDoctor(sys, "D015", "Dr. Martin", "Endocrinology", "Endocrinology",
+             "1234567890", "Mon-Fri");
 
   hms::OpResult res = sys.updateDoctor("D015", "-Dr. Martin", "Endocrinology",
                                        "Endocrinology", "1234567890", "Mon-Fri");
   check("Doctor update with '-' prefix in name rejected", !res.success);
 
   const hms::Doctor *d = sys.findDoctor("D015");
+  const auto stored = db.makeFileManager().loadDoctors();
   check("Original doctor name unmodified after '-'-prefix-name update failure",
-        d != nullptr && d->getName() == "Dr. Martin");
+        d != nullptr && d->getName() == "Dr. Martin" &&
+        stored.size() == 1 && stored[0].getName() == "Dr. Martin");
 }
 
 void testDoctorUpdate_PrefixAt() {
@@ -583,16 +616,18 @@ void testDoctorUpdate_PrefixAt() {
   TempDb db("d_upd_at");
   auto sys = db.makeSystem();
 
-  assert(seedDoctor(sys, "D016", "Dr. Nash", "Neurosurgery", "Neurosurgery",
-                    "1234567890", "Mon-Fri"));
+  seedDoctor(sys, "D016", "Dr. Nash", "Neurosurgery", "Neurosurgery",
+             "1234567890", "Mon-Fri");
 
   hms::OpResult res = sys.updateDoctor("D016", "@Dr. Nash", "Neurosurgery",
                                        "Neurosurgery", "1234567890", "Mon-Fri");
   check("Doctor update with '@' prefix in name rejected", !res.success);
 
   const hms::Doctor *d = sys.findDoctor("D016");
+  const auto stored = db.makeFileManager().loadDoctors();
   check("Original doctor name unmodified after '@'-prefix-name update failure",
-        d != nullptr && d->getName() == "Dr. Nash");
+        d != nullptr && d->getName() == "Dr. Nash" &&
+        stored.size() == 1 && stored[0].getName() == "Dr. Nash");
 }
 
 // ===========================================================================
@@ -608,27 +643,11 @@ void testDoctorUpdate_PrefixAt() {
 // We also test comma in patientId and doctorId to confirm those paths reject.
 // ===========================================================================
 
-// Helper: seed a valid patient and doctor so bookAppointment can reach the
-// date/time validation steps.
-struct SeededEntities {
-  bool ok{false};
-};
-
-SeededEntities seedForAppointment(hms::HospitalSystem &sys) {
-  SeededEntities se;
-  std::string err;
-  hms::Patient p("P099", "Test Patient", 30, "M", "9876543210", "99 Test St");
-  hms::Doctor  d("D099", "Dr. Test", "Testing", "Testing", "9876543210", "Mon-Fri");
-  se.ok = p.isValid() && sys.getFileManager().savePatient(p, err) &&
-          d.isValid() && sys.getFileManager().saveDoctor(d, err);
-  return se;
-}
-
 void testAppointmentBook_CommaInDate() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for comma in date ---\n";
   TempDb db("a_book_comma_date");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099", "2026,10-05", "14:30",
@@ -642,7 +661,7 @@ void testAppointmentBook_LFInDate() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for LF in date ---\n";
   TempDb db("a_book_lf_date");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099",
@@ -657,7 +676,7 @@ void testAppointmentBook_CRInDate() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for CR in date ---\n";
   TempDb db("a_book_cr_date");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099",
@@ -672,7 +691,7 @@ void testAppointmentBook_PrefixEqualsInDate() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for '=' prefix in date ---\n";
   TempDb db("a_book_eq_date");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099", "=2026-10-05", "14:30",
@@ -686,7 +705,7 @@ void testAppointmentBook_PrefixPlusInTime() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for '+' prefix in time ---\n";
   TempDb db("a_book_plus_time");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099", "2026-10-05", "+14:30",
@@ -700,7 +719,7 @@ void testAppointmentBook_PrefixMinusInTime() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for '-' prefix in time ---\n";
   TempDb db("a_book_minus_time");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099", "2026-10-05", "-14:30",
@@ -714,7 +733,7 @@ void testAppointmentBook_PrefixAtInTime() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for '@' prefix in time ---\n";
   TempDb db("a_book_at_time");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099", "2026-10-05", "@14:30",
@@ -728,7 +747,7 @@ void testAppointmentBook_CommaInTime() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for comma in time ---\n";
   TempDb db("a_book_comma_time");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099", "2026-10-05", "14,30",
@@ -742,7 +761,7 @@ void testAppointmentBook_CommaInPatientId() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for comma in patientId ---\n";
   TempDb db("a_book_comma_patid");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   // "P0,99" fails structural alphanumeric check before any security check, which is correct.
@@ -757,7 +776,7 @@ void testAppointmentBook_PrefixEqualsInPatientId() {
   std::cout << "\n--- TC-SEC-02/A-BOOK: Appointment booking rejected for '=' prefix in patientId ---\n";
   TempDb db("a_book_eq_patid");
   auto sys = db.makeSystem();
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("=P099", "D099", "2026-10-05", "14:30",
@@ -790,8 +809,8 @@ void testValidDoctorUpdateStillSucceeds() {
   TempDb db("nonreg_doctor_upd");
   auto sys = db.makeSystem();
 
-  assert(seedDoctor(sys, "D200", "Dr. Original", "Surgery", "Surgery",
-                    "9876543210", "Mon-Fri"));
+  seedDoctor(sys, "D200", "Dr. Original", "Surgery", "Surgery",
+             "9876543210", "Mon-Fri");
 
   hms::OpResult res = sys.updateDoctor("D200", "Dr. Updated", "Surgery",
                                        "Surgery", "9876543210", "Mon-Fri");
@@ -807,7 +826,7 @@ void testValidAppointmentBookStillSucceeds() {
   TempDb db("nonreg_appt_book");
   auto sys = db.makeSystem();
 
-  assert(seedForAppointment(sys).ok);
+  seedForAppointment(sys);
 
   std::string apptId, err;
   bool booked = sys.bookAppointment("P099", "D099", "2026-10-15", "09:00",
@@ -887,4 +906,3 @@ int main() {
 
   return (g_failed == 0) ? 0 : 1;
 }
-
