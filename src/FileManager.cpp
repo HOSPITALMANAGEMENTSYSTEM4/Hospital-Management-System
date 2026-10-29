@@ -265,8 +265,7 @@ bool FileManager::savePatient(const Patient &patient,
     std::filesystem::create_directories(parent, filesystemError);
 
     if (filesystemError) {
-      errorMessage =
-          "Could not create the data directory: " + filesystemError.message();
+      errorMessage = "Could not save data due to a filesystem error.";
       return false;
     }
   }
@@ -329,8 +328,7 @@ bool FileManager::savePatients(const std::vector<Patient> &patients,
     std::filesystem::create_directories(parent, filesystemError);
 
     if (filesystemError) {
-      errorMessage =
-          "Could not create the data directory: " + filesystemError.message();
+      errorMessage = "Could not save data due to a filesystem error.";
       return false;
     }
   }
@@ -373,7 +371,7 @@ bool FileManager::savePatients(const std::vector<Patient> &patients,
       std::remove(tempPath.c_str());
       errorMessage = "Changes may not have been saved";
       if (backupExists) {
-        errorMessage += ". Existing backup was preserved: " + backupPath;
+        errorMessage += ". An existing backup was preserved.";
       }
       return false;
     }
@@ -393,7 +391,7 @@ bool FileManager::savePatients(const std::vector<Patient> &patients,
 
       errorMessage = "Changes may not have been saved";
       if (restoreError) {
-        errorMessage += ". Original data remains in backup file: " + backupPath;
+        errorMessage += ". The original data remains in a backup file.";
       }
       return false;
     }
@@ -525,8 +523,7 @@ bool FileManager::saveDoctor(const Doctor &doctor,
     std::filesystem::create_directories(parent, filesystemError);
 
     if (filesystemError) {
-      errorMessage =
-          "Could not create the data directory: " + filesystemError.message();
+      errorMessage = "Could not save data due to a filesystem error.";
       return false;
     }
   }
@@ -589,8 +586,7 @@ bool FileManager::saveDoctors(const std::vector<Doctor> &doctors,
     std::filesystem::create_directories(parent, filesystemError);
 
     if (filesystemError) {
-      errorMessage =
-          "Could not create the data directory: " + filesystemError.message();
+      errorMessage = "Could not save data due to a filesystem error.";
       return false;
     }
   }
@@ -633,7 +629,7 @@ bool FileManager::saveDoctors(const std::vector<Doctor> &doctors,
       std::remove(tempPath.c_str());
       errorMessage = "Changes may not have been saved";
       if (backupExists) {
-        errorMessage += ". Existing backup was preserved: " + backupPath;
+        errorMessage += ". An existing backup was preserved.";
       }
       return false;
     }
@@ -653,8 +649,7 @@ bool FileManager::saveDoctors(const std::vector<Doctor> &doctors,
 
       errorMessage = "Changes may not have been saved";
       if (restoreError) {
-        errorMessage +=
-            ". Original data remains in backup file: " + backupPath;
+        errorMessage += ". The original data remains in a backup file.";
       }
       return false;
     }
@@ -869,8 +864,7 @@ bool FileManager::saveAppointment(const Appointment &appointment,
     std::filesystem::create_directories(parent, filesystemError);
 
     if (filesystemError) {
-      errorMessage =
-          "Could not create the data directory: " + filesystemError.message();
+      errorMessage = "Could not save data due to a filesystem error.";
       return false;
     }
   }
@@ -926,8 +920,7 @@ bool FileManager::saveAppointments(const std::vector<Appointment> &appointments,
     std::filesystem::create_directories(parent, filesystemError);
 
     if (filesystemError) {
-      errorMessage =
-          "Could not create the data directory: " + filesystemError.message();
+      errorMessage = "Could not save data due to a filesystem error.";
       return false;
     }
   }
@@ -970,7 +963,7 @@ bool FileManager::saveAppointments(const std::vector<Appointment> &appointments,
       std::remove(tempPath.c_str());
       errorMessage = "Changes may not have been saved";
       if (backupExists) {
-        errorMessage += ". Existing backup was preserved: " + backupPath;
+        errorMessage += ". An existing backup was preserved.";
       }
       return false;
     }
@@ -990,8 +983,7 @@ bool FileManager::saveAppointments(const std::vector<Appointment> &appointments,
 
       errorMessage = "Changes may not have been saved";
       if (restoreError) {
-        errorMessage +=
-            ". Original data remains in backup file: " + backupPath;
+        errorMessage += ". The original data remains in a backup file.";
       }
       return false;
     }

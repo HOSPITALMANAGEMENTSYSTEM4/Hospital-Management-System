@@ -805,3 +805,21 @@ add_test(
     NAME TC-SEC-07_MinimizePatientDataInAppointmentViews
     COMMAND hms_minimize_patient_data_in_appointment_views_tests
 )
+
+
+# Issue #55: Sanitize filesystem error messages (HMS-SR-009, TC-SEC-09)
+add_executable(hms_sanitize_error_messages_tests
+    tests/test_sanitize_error_messages.cpp
+    src/FileManager.cpp
+    src/Patient.cpp
+    src/Doctor.cpp
+    src/Appointment.cpp
+    src/HospitalSystem.cpp
+)
+
+target_include_directories(hms_sanitize_error_messages_tests PRIVATE include)
+
+add_test(
+    NAME TC-SEC-09_SanitizeErrorMessages
+    COMMAND hms_sanitize_error_messages_tests
+)
