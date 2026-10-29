@@ -734,3 +734,20 @@ add_test(
     COMMAND hms_human_readable_csv_tests
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
+
+# Issue #48: CSV and Formula Injection Guard (HMS-SR-002, TC-SEC-02)
+add_executable(hms_csv_formula_injection_guard_tests
+    tests/test_csv_formula_injection_guard.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_csv_formula_injection_guard_tests PRIVATE include)
+
+add_test(
+    NAME TC-SEC-02_CSVFormulaInjectionGuard
+    COMMAND hms_csv_formula_injection_guard_tests
+)
