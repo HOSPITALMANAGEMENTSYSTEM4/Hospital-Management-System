@@ -106,7 +106,7 @@ bool Patient::validateAge(int age, std::string &errorMessage) {
 }
 
 bool Patient::validateAge(const std::string &input, int &outAge, std::string &errorMessage) {
-  if (input.empty()) {
+  if (input.empty() || input.size() > 10) {
     errorMessage = "Age: must be a whole number from 0 to 120.";
     return false;
   }
@@ -127,6 +127,10 @@ bool Patient::validateAge(const std::string &input, int &outAge, std::string &er
 
 // VR-04: Gender — M, F, or O (case-insensitive).
 bool Patient::validateGender(const std::string &gender, std::string &errorMessage) {
+  if (gender.size() != 1) {
+    errorMessage = "Gender: must be M, F, or O.";
+    return false;
+  }
   const std::string g = toUpper(gender);
   if (g != "M" && g != "F" && g != "O") {
     errorMessage = "Gender: must be M, F, or O.";
