@@ -823,3 +823,74 @@ add_test(
     NAME TC-SEC-09_SanitizeErrorMessages
     COMMAND hms_sanitize_error_messages_tests
 )
+# Issue #56: Restrict data directory access (HMS-SR-010, TC-SEC-10)
+add_executable(hms_restrict_data_directory_tests
+    tests/test_restrict_data_directory.cpp
+    src/FileManager.cpp
+    src/Patient.cpp
+    src/Doctor.cpp
+    src/Appointment.cpp
+    src/HospitalSystem.cpp
+)
+
+target_include_directories(hms_restrict_data_directory_tests PRIVATE include)
+
+add_test(
+    NAME TC-SEC-10_RestrictDataDirectory
+    COMMAND hms_restrict_data_directory_tests
+)
+# Issue #56: custom paths are allowed only in test builds.
+# Keep the production executable (hms) and the security test target unprivileged.
+# Issue #56: enable custom data paths only in existing test executables.
+set(HMS_TEST_TARGETS
+    hms_tests
+    hms_validate_tests
+    hms_add_doctor_tests
+    hms_duplicate_doctor_tests
+    hms_validate_doctor_tests
+    hms_search_doctors_tests
+    hms_search_patients_tests
+    hms_reject_unknown_patient_tests
+    hms_book_appointment_tests
+    hms_validate_appointment_datetime_tests
+    hms_reject_unknown_doctor_tests
+    hms_check_doctor_availability_tests
+    hms_prevent_double_booking_tests
+    hms_ignore_cancelled_appointments_tests
+    hms_view_appointments_date_time_order_tests
+    hms_cancel_appointment_tests
+    hms_reject_invalid_cancellation_tests
+    hms_view_list_doctors_tests
+    hms_startup_csv_loading_tests
+    hms_missing_csv_files_tests
+    hms_patient_details_tests
+    hms_skip_malformed_csv_tests
+    hms_menu_navigation_tests
+    hms_reject_invalid_menu_options_tests
+    hms_update_patient_details_tests
+    hms_prevent_patient_id_edits_tests
+    hms_update_doctor_details_tests
+    hms_prevent_doctor_id_edits_tests
+    hms_csv_write_failures_tests
+    hms_invalid_input_crash_resilience_tests
+    hms_skip_duplicate_and_orphan_records_tests
+    hms_operation_outcome_messages_tests
+    hms_exit_cleanly_tests
+    hms_robust_startup_tests
+    hms_data_retention_tests
+    hms_usability_menu_depth_tests
+    hms_appointment_conflict_correctness_tests
+    hms_architectural_class_isolation_tests
+    hms_performance_1000_tests
+    hms_accept_list_input_validation_tests
+    hms_human_readable_csv_tests
+    hms_csv_formula_injection_guard_tests
+    hms_over_length_input_safety_tests
+    hms_retain_cancelled_appointment_records_tests
+    hms_minimize_patient_data_in_appointment_views_tests
+    hms_sanitize_error_messages_tests
+)
+
+foreach(HMS_TARGET IN LISTS HMS_TEST_TARGETS)
+    target_compile_definitions(${HMS_TARGET} PRIVATE HMS_TESTING)
+endforeach()

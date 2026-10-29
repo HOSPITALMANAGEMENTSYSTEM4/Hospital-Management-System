@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <system_error>
 #include <unordered_set>
 #include <utility>
 
@@ -151,6 +152,25 @@ std::string toLower(const std::string &s) {
   return result;
 }
 
+
+// Fail closed if any approved data path or transactional sidecar is a symlink.
+// Missing files are allowed; the application creates them when needed.
+bool isSymlinkOrUnsafe(const std::filesystem::path &path) {
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+
+  if (ec == std::errc::no_such_file_or_directory ||
+      ec == std::errc::not_a_directory) {
+    return false;
+  }
+
+  if (ec) {
+    return true;
+  }
+
+  return std::filesystem::is_symlink(status);
+}
+
 } // namespace
 
 FileManager::FileManager(std::string patientFilePath,
@@ -158,7 +178,48 @@ FileManager::FileManager(std::string patientFilePath,
                          std::string appointmentFilePath)
     : patientFilePath_(std::move(patientFilePath)),
       doctorFilePath_(std::move(doctorFilePath)),
-      appointmentFilePath_(std::move(appointmentFilePath)) {}
+      appointmentFilePath_(std::move(appointmentFilePath)),
+#ifdef HMS_TESTING
+      pathsAllowed_(true)
+#else
+      pathsAllowed_(patientFilePath_ == "data/patients.csv" &&
+                    doctorFilePath_ == "data/doctors.csv" &&
+                    appointmentFilePath_ == "data/appointments.csv")
+#endif
+{}
+
+bool FileManager::dataPathsAreSafe() const {
+  if (!pathsAllowed_) {
+    return false;
+  }
+
+#ifdef HMS_TESTING
+  return true;
+#else
+  // The production application is restricted to these exact relative paths.
+  if (patientFilePath_ != "data/patients.csv" ||
+      doctorFilePath_ != "data/doctors.csv" ||
+      appointmentFilePath_ != "data/appointments.csv") {
+    return false;
+  }
+
+  // Reject a redirected data directory, data files, or transactional sidecars.
+  const std::filesystem::path paths[] = {
+      "data",
+      "data/patients.csv", "data/patients.csv.tmp", "data/patients.csv.bak",
+      "data/doctors.csv", "data/doctors.csv.tmp", "data/doctors.csv.bak",
+      "data/appointments.csv", "data/appointments.csv.tmp",
+      "data/appointments.csv.bak"};
+
+  for (const auto &path : paths) {
+    if (isSymlinkOrUnsafe(path)) {
+      return false;
+    }
+  }
+
+  return true;
+#endif
+}
 
 const std::string &FileManager::getPatientFilePath() const {
   return patientFilePath_;
@@ -173,6 +234,13 @@ const std::string &FileManager::getAppointmentFilePath() const {
 }
 
 std::vector<Patient> FileManager::loadPatients(std::size_t *malformedCount) const {
+  if (!dataPathsAreSafe()) {
+    if (malformedCount) {
+      *malformedCount = 0;
+    }
+    return {};
+  }
+
   std::vector<Patient> patients;
   std::size_t skipped = 0;
   std::unordered_set<std::string> seenPatientIds;
@@ -232,6 +300,10 @@ std::vector<Patient> FileManager::loadPatients(std::size_t *malformedCount) cons
 }
 
 bool FileManager::patientIdExists(const std::string &patientId) const {
+  if (!dataPathsAreSafe()) {
+    return false;
+  }
+
   const std::string needle = toLower(patientId);
 
   for (const Patient &patient : loadPatients()) {
@@ -245,6 +317,11 @@ bool FileManager::patientIdExists(const std::string &patientId) const {
 
 bool FileManager::savePatient(const Patient &patient,
                               std::string &errorMessage) const {
+  if (!dataPathsAreSafe()) {
+    errorMessage = "Data path is not permitted.";
+    return false;
+  }
+
   std::string validationError;
   if (!patient.validate(validationError)) {
     errorMessage = validationError;
@@ -311,6 +388,11 @@ bool FileManager::savePatient(const Patient &patient,
 
 bool FileManager::savePatients(const std::vector<Patient> &patients,
                                std::string &errorMessage) const {
+  if (!dataPathsAreSafe()) {
+    errorMessage = "Data path is not permitted.";
+    return false;
+  }
+
   for (const auto &patient : patients) {
     std::string validationError;
     if (!patient.validate(validationError)) {
@@ -410,6 +492,11 @@ bool FileManager::savePatients(const std::vector<Patient> &patients,
 
 bool FileManager::updatePatient(const Patient &patient,
                                 std::string &errorMessage) const {
+  if (!dataPathsAreSafe()) {
+    errorMessage = "Data path is not permitted.";
+    return false;
+  }
+
   std::string validationError;
   if (!patient.validate(validationError)) {
     errorMessage = validationError;
@@ -437,6 +524,13 @@ bool FileManager::updatePatient(const Patient &patient,
 }
 
 std::vector<Doctor> FileManager::loadDoctors(std::size_t *malformedCount) const {
+  if (!dataPathsAreSafe()) {
+    if (malformedCount) {
+      *malformedCount = 0;
+    }
+    return {};
+  }
+
   std::vector<Doctor> doctors;
   std::size_t skipped = 0;
   std::unordered_set<std::string> seenDoctorIds;
@@ -490,6 +584,10 @@ std::vector<Doctor> FileManager::loadDoctors(std::size_t *malformedCount) const 
 }
 
 bool FileManager::doctorIdExists(const std::string &doctorId) const {
+  if (!dataPathsAreSafe()) {
+    return false;
+  }
+
   const std::string needle = toLower(doctorId);
 
   for (const Doctor &doctor : loadDoctors()) {
@@ -503,6 +601,11 @@ bool FileManager::doctorIdExists(const std::string &doctorId) const {
 
 bool FileManager::saveDoctor(const Doctor &doctor,
                              std::string &errorMessage) const {
+  if (!dataPathsAreSafe()) {
+    errorMessage = "Data path is not permitted.";
+    return false;
+  }
+
   std::string validationError;
   if (!doctor.validate(validationError)) {
     errorMessage = validationError;
@@ -569,6 +672,11 @@ bool FileManager::saveDoctor(const Doctor &doctor,
 
 bool FileManager::saveDoctors(const std::vector<Doctor> &doctors,
                               std::string &errorMessage) const {
+  if (!dataPathsAreSafe()) {
+    errorMessage = "Data path is not permitted.";
+    return false;
+  }
+
   for (const auto &doctor : doctors) {
     std::string validationError;
     if (!doctor.validate(validationError)) {
@@ -669,6 +777,11 @@ bool FileManager::saveDoctors(const std::vector<Doctor> &doctors,
 
 bool FileManager::updateDoctor(const Doctor &doctor,
                                std::string &errorMessage) const {
+  if (!dataPathsAreSafe()) {
+    errorMessage = "Data path is not permitted.";
+    return false;
+  }
+
   std::string validationError;
   if (!doctor.validate(validationError)) {
     errorMessage = validationError;
@@ -699,6 +812,13 @@ bool FileManager::updateDoctor(const Doctor &doctor,
 
 std::vector<Appointment> FileManager::loadAppointments(
     std::size_t *malformedCount) const {
+  if (!dataPathsAreSafe()) {
+    if (malformedCount) {
+      *malformedCount = 0;
+    }
+    return {};
+  }
+
   std::vector<Appointment> appointments;
   std::size_t skipped = 0;
   std::ifstream input(appointmentFilePath_);
@@ -810,6 +930,10 @@ std::vector<Appointment> FileManager::loadAppointments(
 
 bool FileManager::appointmentIdExists(
     const std::string &appointmentId) const {
+  if (!dataPathsAreSafe()) {
+    return false;
+  }
+
   const std::string needle = toLower(trim(appointmentId));
 
   std::ifstream input(appointmentFilePath_);
@@ -844,6 +968,11 @@ bool FileManager::appointmentIdExists(
 
 bool FileManager::saveAppointment(const Appointment &appointment,
                                  std::string &errorMessage) const {
+  if (!dataPathsAreSafe()) {
+    errorMessage = "Data path is not permitted.";
+    return false;
+  }
+
   std::string validationError;
   if (!appointment.validate(validationError)) {
     errorMessage = validationError;
@@ -911,6 +1040,10 @@ bool FileManager::saveAppointment(const Appointment &appointment,
 
 bool FileManager::saveAppointments(const std::vector<Appointment> &appointments,
                                   std::string &errorMessage) const {
+  if (!dataPathsAreSafe()) {
+    errorMessage = "Data path is not permitted.";
+    return false;
+  }
   const std::filesystem::path filePath(appointmentFilePath_);
   const std::filesystem::path parent = filePath.parent_path();
 

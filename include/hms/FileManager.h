@@ -85,9 +85,12 @@ public:
     const std::string &getAppointmentFilePath() const;
 
 private:
+    bool dataPathsAreSafe() const;
+
     std::string patientFilePath_;
     std::string doctorFilePath_;
     std::string appointmentFilePath_;
+    bool pathsAllowed_;
 };
 
 } // namespace hms
