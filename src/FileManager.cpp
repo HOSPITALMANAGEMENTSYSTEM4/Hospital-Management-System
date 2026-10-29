@@ -366,7 +366,18 @@ bool FileManager::savePatients(const std::vector<Patient> &patients,
 
   std::error_code ec;
   if (std::filesystem::exists(filePath, ec)) {
-    std::filesystem::remove(backupPath, ec);
+    // Never delete an existing backup automatically: it may be the only
+    // remaining copy of the original data after an earlier failed write.
+    const bool backupExists = std::filesystem::exists(backupPath, ec);
+    if (ec || backupExists) {
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      if (backupExists) {
+        errorMessage += ". Existing backup was preserved: " + backupPath;
+      }
+      return false;
+    }
+
     std::filesystem::rename(filePath, backupPath, ec);
     if (ec) {
       std::remove(tempPath.c_str());
@@ -376,12 +387,16 @@ bool FileManager::savePatients(const std::vector<Patient> &patients,
 
     std::filesystem::rename(tempPath, filePath, ec);
     if (ec) {
-      std::filesystem::rename(backupPath, filePath, ec);
+      std::error_code restoreError;
+      std::filesystem::rename(backupPath, filePath, restoreError);
       std::remove(tempPath.c_str());
+
       errorMessage = "Changes may not have been saved";
+      if (restoreError) {
+        errorMessage += ". Original data remains in backup file: " + backupPath;
+      }
       return false;
     }
-
     std::filesystem::remove(backupPath, ec);
   } else {
     std::filesystem::rename(tempPath, filePath, ec);
@@ -611,7 +626,18 @@ bool FileManager::saveDoctors(const std::vector<Doctor> &doctors,
 
   std::error_code ec;
   if (std::filesystem::exists(filePath, ec)) {
-    std::filesystem::remove(backupPath, ec);
+    // Never delete an existing backup automatically: it may be the only
+    // remaining copy of the original data after an earlier failed write.
+    const bool backupExists = std::filesystem::exists(backupPath, ec);
+    if (ec || backupExists) {
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      if (backupExists) {
+        errorMessage += ". Existing backup was preserved: " + backupPath;
+      }
+      return false;
+    }
+
     std::filesystem::rename(filePath, backupPath, ec);
     if (ec) {
       std::remove(tempPath.c_str());
@@ -621,9 +647,15 @@ bool FileManager::saveDoctors(const std::vector<Doctor> &doctors,
 
     std::filesystem::rename(tempPath, filePath, ec);
     if (ec) {
-      std::filesystem::rename(backupPath, filePath, ec);
+      std::error_code restoreError;
+      std::filesystem::rename(backupPath, filePath, restoreError);
       std::remove(tempPath.c_str());
+
       errorMessage = "Changes may not have been saved";
+      if (restoreError) {
+        errorMessage +=
+            ". Original data remains in backup file: " + backupPath;
+      }
       return false;
     }
 
@@ -931,7 +963,18 @@ bool FileManager::saveAppointments(const std::vector<Appointment> &appointments,
 
   std::error_code ec;
   if (std::filesystem::exists(filePath, ec)) {
-    std::filesystem::remove(backupPath, ec);
+    // Never delete an existing backup automatically: it may be the only
+    // remaining copy of the original data after an earlier failed write.
+    const bool backupExists = std::filesystem::exists(backupPath, ec);
+    if (ec || backupExists) {
+      std::remove(tempPath.c_str());
+      errorMessage = "Changes may not have been saved";
+      if (backupExists) {
+        errorMessage += ". Existing backup was preserved: " + backupPath;
+      }
+      return false;
+    }
+
     std::filesystem::rename(filePath, backupPath, ec);
     if (ec) {
       std::remove(tempPath.c_str());
@@ -941,9 +984,15 @@ bool FileManager::saveAppointments(const std::vector<Appointment> &appointments,
 
     std::filesystem::rename(tempPath, filePath, ec);
     if (ec) {
-      std::filesystem::rename(backupPath, filePath, ec);
+      std::error_code restoreError;
+      std::filesystem::rename(backupPath, filePath, restoreError);
       std::remove(tempPath.c_str());
+
       errorMessage = "Changes may not have been saved";
+      if (restoreError) {
+        errorMessage +=
+            ". Original data remains in backup file: " + backupPath;
+      }
       return false;
     }
 
