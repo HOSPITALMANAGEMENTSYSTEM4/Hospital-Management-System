@@ -787,3 +787,21 @@ add_test(
     NAME TC-SEC-06_RetainCancelledAppointmentRecords
     COMMAND hms_retain_cancelled_appointment_records_tests
 )
+
+
+# Issue #53: Minimize Patient Data in Appointment Views (HMS-SR-007, TC-SEC-07)
+add_executable(hms_minimize_patient_data_in_appointment_views_tests
+    tests/test_minimize_patient_data_in_appointment_views.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_minimize_patient_data_in_appointment_views_tests PRIVATE include)
+
+add_test(
+    NAME TC-SEC-07_MinimizePatientDataInAppointmentViews
+    COMMAND hms_minimize_patient_data_in_appointment_views_tests
+)

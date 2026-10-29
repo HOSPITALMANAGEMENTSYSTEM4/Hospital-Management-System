@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -1185,10 +1186,38 @@ void HospitalSystem::viewAppointments(const std::string &filterType,
     return;
   }
 
+  const auto patients = fileManager_.loadPatients();
+  const auto doctors = fileManager_.loadDoctors();
+
+  std::unordered_map<std::string, std::string> patientNames;
+  patientNames.reserve(patients.size());
+  for (const auto &p : patients) {
+    patientNames[toUpper(trim(p.getId()))] = p.getName();
+  }
+
+  std::unordered_map<std::string, std::string> doctorNames;
+  doctorNames.reserve(doctors.size());
+  for (const auto &d : doctors) {
+    doctorNames[toUpper(trim(d.getId()))] = d.getName();
+  }
+
   for (const auto &a : appointments) {
+    std::string patName = "N/A";
+    const auto itP = patientNames.find(toUpper(trim(a.getPatientId())));
+    if (itP != patientNames.end()) {
+      patName = itP->second;
+    }
+
+    std::string docName = "N/A";
+    const auto itD = doctorNames.find(toUpper(trim(a.getDoctorId())));
+    if (itD != doctorNames.end()) {
+      docName = itD->second;
+    }
     std::cout << "Appointment ID: " << a.getId()
               << " | Patient ID: " << a.getPatientId()
+              << " | Patient Name: " << patName
               << " | Doctor ID: " << a.getDoctorId()
+              << " | Doctor Name: " << docName
               << " | Date: " << a.getDate()
               << " | Time: " << a.getTime()
               << " | Status: " << a.getStatusString() << '\n';

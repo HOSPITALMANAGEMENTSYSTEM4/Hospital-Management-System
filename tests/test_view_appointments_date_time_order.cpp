@@ -210,15 +210,15 @@ int main() {
     const std::string out = captureViewAppointments(system, "ALL");
     check("viewAppointments('ALL') contains header", out.find("--- View Appointments ---") != std::string::npos);
     check("viewAppointments('ALL') displays A0005 Cancelled",
-          out.find("Appointment ID: A0005 | Patient ID: P002 | Doctor ID: D002 | Date: 2026-10-15 | Time: 16:00 | Status: Cancelled") != std::string::npos);
+          out.find("Appointment ID: A0005 | Patient ID: P002 | Patient Name: Bob Jones | Doctor ID: D002 | Doctor Name: Dr. Jane Roe | Date: 2026-10-15 | Time: 16:00 | Status: Cancelled") != std::string::npos);
     check("viewAppointments('ALL') displays A0002 Booked",
-          out.find("Appointment ID: A0002 | Patient ID: P002 | Doctor ID: D001 | Date: 2026-10-20 | Time: 09:30 | Status: Booked") != std::string::npos);
+          out.find("Appointment ID: A0002 | Patient ID: P002 | Patient Name: Bob Jones | Doctor ID: D001 | Doctor Name: Dr. John Doe | Date: 2026-10-20 | Time: 09:30 | Status: Booked") != std::string::npos);
     check("viewAppointments('ALL') displays A0004 Cancelled",
-          out.find("Appointment ID: A0004 | Patient ID: P003 | Doctor ID: D002 | Date: 2026-10-20 | Time: 09:30 | Status: Cancelled") != std::string::npos);
+          out.find("Appointment ID: A0004 | Patient ID: P003 | Patient Name: Carol White | Doctor ID: D002 | Doctor Name: Dr. Jane Roe | Date: 2026-10-20 | Time: 09:30 | Status: Cancelled") != std::string::npos);
     check("viewAppointments('ALL') displays A0003 Booked",
-          out.find("Appointment ID: A0003 | Patient ID: P001 | Doctor ID: D002 | Date: 2026-10-20 | Time: 11:00 | Status: Booked") != std::string::npos);
+          out.find("Appointment ID: A0003 | Patient ID: P001 | Patient Name: Alice Smith | Doctor ID: D002 | Doctor Name: Dr. Jane Roe | Date: 2026-10-20 | Time: 11:00 | Status: Booked") != std::string::npos);
     check("viewAppointments('ALL') displays A0001 Booked",
-          out.find("Appointment ID: A0001 | Patient ID: P001 | Doctor ID: D001 | Date: 2026-11-15 | Time: 14:00 | Status: Booked") != std::string::npos);
+          out.find("Appointment ID: A0001 | Patient ID: P001 | Patient Name: Alice Smith | Doctor ID: D001 | Doctor Name: Dr. John Doe | Date: 2026-11-15 | Time: 14:00 | Status: Booked") != std::string::npos);
 
     // Verify relative display order in console output
     const std::size_t posA0005 = out.find("A0005");
