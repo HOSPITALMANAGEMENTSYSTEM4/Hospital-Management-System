@@ -119,7 +119,7 @@ bool Appointment::validateId(const std::string &id, std::string &errorMessage) {
     return false;
   }
   // VR-12: System-generated A + at least four digits (A0001, A0002, ...)
-  if (id.size() < 5 || (id[0] != 'A' && id[0] != 'a')) {
+  if (id.size() < 5 || id.size() > 10 || (id[0] != 'A' && id[0] != 'a')) {
     errorMessage = "Appointment ID: must start with 'A' followed by at least 4 digits.";
     return false;
   }

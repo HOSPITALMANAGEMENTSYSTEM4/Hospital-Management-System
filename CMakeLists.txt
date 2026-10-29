@@ -751,3 +751,21 @@ add_test(
     NAME TC-SEC-02_CSVFormulaInjectionGuard
     COMMAND hms_csv_formula_injection_guard_tests
 )
+
+
+# Issue #49: Over-Length Input Safety (HMS-SR-003, TC-SEC-03)
+add_executable(hms_over_length_input_safety_tests
+    tests/test_over_length_input_safety.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_over_length_input_safety_tests PRIVATE include)
+
+add_test(
+    NAME TC-SEC-03_OverLengthInputSafety
+    COMMAND hms_over_length_input_safety_tests
+)
