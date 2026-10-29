@@ -1,4 +1,3 @@
-
 #include "hms/FileManager.h"
 #include "hms/HospitalSystem.h"
 
@@ -7,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -31,7 +31,6 @@ void testSkipMalformedPatientRecords() {
         std::ofstream csv(path);
         csv << "patient_id,name,age,gender,contact_number,address,medical_history\n";
 
-                // Ten valid patient records.
         const std::vector<std::string> names = {
             "Anita", "Rahul", "Priya", "Arun", "Meera",
             "Kiran", "Divya", "Ravi", "Neha", "Suman"
@@ -42,14 +41,13 @@ void testSkipMalformedPatientRecords() {
                 << ",25,M,9876543210,City,None\n";
         }
 
-        // Three malformed records:
-        // 1. Unterminated quoted field.
+        // Malformed: unterminated quoted field.
         csv << "P11,\"Broken name,25,M,9876543211,City,None\n";
 
-        // 2. Wrong number of columns.
+        // Malformed: wrong number of columns.
         csv << "P12,Too few columns,25,M\n";
 
-        // 3. Invalid age.
+        // Malformed: invalid age.
         csv << "P13,Invalid age,not-a-number,M,9876543213,City,None\n";
     }
 
@@ -63,7 +61,7 @@ void testSkipMalformedPatientRecords() {
     check(malformedCount == 3,
           "Three malformed patient records are counted");
 
-    // Select Patient Management (1), View All (3), Return (0), Exit (4).
+    // Select Patient Management, View All, Return, then Exit.
     hms::HospitalSystem system(fileManager);
     std::istringstream input("1\n3\n0\n4\n");
     std::ostringstream output;
@@ -86,16 +84,92 @@ void testSkipMalformedPatientRecords() {
 
     check(displayed.find("3 malformed record(s) skipped")
               != std::string::npos,
-          "The exact malformed-record warning is displayed");
+          "The malformed-record warning is displayed");
 
     check(displayed.find("P10 | Suman") != std::string::npos,
-      "The last valid patient is displayed");
+          "The last valid patient is displayed");
+
     check(displayed.find("Exiting Hospital Management System.")
               != std::string::npos,
-          "The application continues and exits normally after listing");
+          "The application continues and exits normally");
 
     std::filesystem::remove(path);
     std::filesystem::remove(doctorPath);
+}
+
+void testSkipMalformedDoctorRecords() {
+    const std::string patientPath = "build/test_malformed_patients.csv";
+    const std::string doctorPath = "build/test_malformed_doctors.csv";
+
+    std::filesystem::create_directories("build");
+
+    {
+        std::ofstream csv(doctorPath);
+        csv << "doctor_id,name,specialization,department,contact_number,availability\n";
+        csv << "D001,Dr Smith,Cardiology,Medicine,9876543210,Weekdays\n";
+        csv << "D002,Missing Fields\n";
+        csv << "D003,,,,,\n";
+    }
+
+    hms::FileManager fileManager(patientPath, doctorPath);
+    std::size_t malformedCount = 0;
+    const auto doctors = fileManager.loadDoctors(&malformedCount);
+
+    check(doctors.size() == 1,
+          "Only the valid doctor record is loaded");
+
+    check(malformedCount == 2,
+          "Two malformed doctor records are counted");
+
+    std::filesystem::remove(doctorPath);
+}
+
+void testSkipMalformedAppointmentRecords() {
+    const std::string patientPath = "build/test_malformed_patients.csv";
+    const std::string doctorPath = "build/test_malformed_doctors.csv";
+    const std::string appointmentPath = "build/test_malformed_appointments.csv";
+
+    std::filesystem::create_directories("build");
+
+    {
+        std::ofstream csv(patientPath);
+        csv << "patient_id,name,age,gender,contact_number,address,medical_history\n";
+        csv << "P001,Alice,25,F,9876543210,City,None\n";
+    }
+
+    {
+        std::ofstream csv(doctorPath);
+        csv << "doctor_id,name,specialization,department,contact_number,availability\n";
+        csv << "D001,Dr Smith,Cardiology,Medicine,9876543211,Weekdays\n";
+    }
+
+    {
+        std::ofstream csv(appointmentPath);
+        csv << "appointment_id,patient_id,doctor_id,date,time,status\n";
+        csv << "A0001,P001,D001,2026-11-15,10:00,Booked\n";
+        // Malformed: unknown appointment status.
+        csv << "A002,P001,D001,2026-11-16,11:00,UnknownStatus\n";
+
+        // Malformed: wrong number of columns.
+        csv << "A003,P001,D001,2026-11-17\n";
+    }
+
+    hms::FileManager fileManager(
+        patientPath, doctorPath, appointmentPath);
+
+    std::size_t malformedCount = 0;
+    const auto appointments =
+        fileManager.loadAppointments(&malformedCount);
+
+    check(appointments.size() == 1,
+          "Only the valid appointment record is loaded");
+
+    check(malformedCount == 2,
+          "Two malformed appointment records are counted");
+
+    std::filesystem::remove(patientPath);
+    std::filesystem::remove(doctorPath);
+    std::filesystem::remove(appointmentPath);
 }
 
 } // namespace
@@ -103,6 +177,8 @@ void testSkipMalformedPatientRecords() {
 int main() {
     try {
         testSkipMalformedPatientRecords();
+        testSkipMalformedDoctorRecords();
+        testSkipMalformedAppointmentRecords();
     } catch (const std::exception &error) {
         std::cerr << "[ERROR] " << error.what() << '\n';
         return 1;
