@@ -1260,6 +1260,7 @@ OpResult HospitalSystem::cancelAppointment(const std::string &appointmentId,
     return { false, err };
   }
 
+  appointmentsCache_ = appointments;
   return { true, "Appointment cancelled successfully" };
 }
 
