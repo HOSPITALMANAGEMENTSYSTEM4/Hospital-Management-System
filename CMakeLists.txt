@@ -769,3 +769,21 @@ add_test(
     NAME TC-SEC-03_OverLengthInputSafety
     COMMAND hms_over_length_input_safety_tests
 )
+
+
+# Issue #52: Retain Cancelled Appointment Records (HMS-SR-006, TC-SEC-06 / TC-APT-09)
+add_executable(hms_retain_cancelled_appointment_records_tests
+    tests/test_retain_cancelled_appointment_records.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_retain_cancelled_appointment_records_tests PRIVATE include)
+
+add_test(
+    NAME TC-SEC-06_RetainCancelledAppointmentRecords
+    COMMAND hms_retain_cancelled_appointment_records_tests
+)
