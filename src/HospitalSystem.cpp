@@ -321,6 +321,24 @@ void HospitalSystem::registerPatient() {
 
   std::string errorMessage;
 
+  std::string existingPatientId;
+  if (fileManager_.patientIdentityExists(patient.getName(),
+                                         patient.getContactNumber(),
+                                         &existingPatientId)) {
+    std::cout << "\nWarning: Potential duplicate patient record found with Patient ID: "
+              << existingPatientId << '\n';
+    std::cout << "Proceed with registration? (Y/N): ";
+    std::string response;
+    if (!std::getline(std::cin, response)) {
+      return;
+    }
+    response = toUpper(trim(response));
+    if (response != "Y") {
+      std::cout << "Registration cancelled.\n";
+      return;
+    }
+  }
+
   if (!fileManager_.savePatient(patient, errorMessage)) {
     std::cout << "Registration failed: " << errorMessage << '\n';
     return;
@@ -636,6 +654,28 @@ const Patient* HospitalSystem::findPatient(const std::string &patientId) const {
   return nullptr;
 }
 
+const Patient* HospitalSystem::findPatientByIdentity(
+    const std::string &name,
+    const std::string &contactNumber,
+    const std::string &excludePatientId) const {
+  patientsCache_ = fileManager_.loadPatients();
+  const std::string normName = FileManager::normalizeString(name);
+  const std::string normContact = FileManager::normalizeString(contactNumber);
+  const std::string normExclude = toLower(trim(excludePatientId));
+
+  for (const auto &p : patientsCache_) {
+    if (!normExclude.empty() && toLower(trim(p.getId())) == normExclude) {
+      continue;
+    }
+    if (FileManager::normalizeString(p.getName()) == normName &&
+        FileManager::normalizeString(p.getContactNumber()) == normContact) {
+      return &p;
+    }
+  }
+
+  return nullptr;
+}
+
 void HospitalSystem::addDoctor() {
   std::cout << "\n--- Add Doctor ---\n";
 
@@ -671,6 +711,25 @@ void HospitalSystem::addDoctor() {
   }
 
   std::string errorMessage;
+
+  std::string existingDoctorId;
+  if (fileManager_.doctorIdentityExists(doctor.getName(),
+                                        doctor.getContactNumber(),
+                                        doctor.getSpecialization(),
+                                        &existingDoctorId)) {
+    std::cout << "\nWarning: Potential duplicate doctor record found with Doctor ID: "
+              << existingDoctorId << '\n';
+    std::cout << "Proceed with registration? (Y/N): ";
+    std::string response;
+    if (!std::getline(std::cin, response)) {
+      return;
+    }
+    response = toUpper(trim(response));
+    if (response != "Y") {
+      std::cout << "Registration cancelled.\n";
+      return;
+    }
+  }
 
   if (!fileManager_.saveDoctor(doctor, errorMessage)) {
     std::cout << "Addition failed: " << errorMessage << '\n';
@@ -958,6 +1017,31 @@ const Doctor* HospitalSystem::findDoctor(
   return nullptr;
 }
 
+
+const Doctor* HospitalSystem::findDoctorByIdentity(
+    const std::string &name,
+    const std::string &contactNumber,
+    const std::string &specialization,
+    const std::string &excludeDoctorId) const {
+  doctorsCache_ = fileManager_.loadDoctors();
+  const std::string normName = FileManager::normalizeString(name);
+  const std::string normContact = FileManager::normalizeString(contactNumber);
+  const std::string normSpec = FileManager::normalizeString(specialization);
+  const std::string normExclude = toLower(trim(excludeDoctorId));
+
+  for (const auto &doctor : doctorsCache_) {
+    if (!normExclude.empty() && toLower(trim(doctor.getId())) == normExclude) {
+      continue;
+    }
+    if (FileManager::normalizeString(doctor.getName()) == normName &&
+        FileManager::normalizeString(doctor.getContactNumber()) == normContact &&
+        FileManager::normalizeString(doctor.getSpecialization()) == normSpec) {
+      return &doctor;
+    }
+  }
+
+  return nullptr;
+}
 
 std::string HospitalSystem::nextAppointmentId() const {
   int maxNum = 0;
