@@ -75,19 +75,49 @@ std::string resolveProductionPath(const std::string &relPath) {
   return relPath;
 }
 
+// Record both whether a production CSV exists and its contents.
+// Runtime CSV files may be absent in a clean checkout; absence is valid.
+// The test must verify that its execution does not create, delete, or modify them.
+struct FileSnapshot {
+  std::string path;
+  bool existed;
+  std::string contents;
+};
+
+FileSnapshot snapshotFile(const std::string &path) {
+  const bool exists = std::filesystem::exists(path);
+  return {path, exists, exists ? readFile(path) : ""};
+}
+
+bool fileUnchanged(const FileSnapshot &snapshot) {
+  const bool existsNow = std::filesystem::exists(snapshot.path);
+
+  if (existsNow != snapshot.existed) {
+    return false;
+  }
+
+  if (!snapshot.existed) {
+    return true;
+  }
+
+  return readFile(snapshot.path) == snapshot.contents;
+}
+
 } // namespace
 
 int main() {
   std::cout << "=== Running Duplicate Identity Validation Tests ===\n\n";
 
-  // Capture baseline of actual production CSV files
-  const std::string prodPatientPath = resolveProductionPath("data/patients.csv");
-  const std::string prodDoctorPath = resolveProductionPath("data/doctors.csv");
-  const std::string prodApptPath = resolveProductionPath("data/appointments.csv");
+  // Snapshot production CSV files without requiring them to exist.
+  // Their existence and contents must remain unchanged throughout this test.
+  const FileSnapshot prodPatientSnapshot =
+      snapshotFile(resolveProductionPath("data/patients.csv"));
 
-  const std::string prodPatientBaseline = readFile(prodPatientPath);
-  const std::string prodDoctorBaseline = readFile(prodDoctorPath);
-  const std::string prodApptBaseline = readFile(prodApptPath);
+  const FileSnapshot prodDoctorSnapshot =
+      snapshotFile(resolveProductionPath("data/doctors.csv"));
+
+  const FileSnapshot prodApptSnapshot =
+      snapshotFile(resolveProductionPath("data/appointments.csv"));
 
   // Isolated test directory to ensure real user data is never touched
   const std::string testDir = "build/test_duplicate_identity";
@@ -636,12 +666,12 @@ int main() {
   // =========================================================================
   std::cout << "\n-- 6. Root-Level CSV Data Protection --\n";
   {
-    check("Root data/patients.csv exists", std::filesystem::exists(prodPatientPath));
-    check("Root data/doctors.csv exists", std::filesystem::exists(prodDoctorPath));
-    check("Root data/appointments.csv exists", std::filesystem::exists(prodApptPath));
-    check("Root data/patients.csv remains untouched", readFile(prodPatientPath) == prodPatientBaseline);
-    check("Root data/doctors.csv remains untouched", readFile(prodDoctorPath) == prodDoctorBaseline);
-    check("Root data/appointments.csv remains untouched", readFile(prodApptPath) == prodApptBaseline);
+    check("Root data/patients.csv existence and contents unchanged",
+          fileUnchanged(prodPatientSnapshot));
+    check("Root data/doctors.csv existence and contents unchanged",
+          fileUnchanged(prodDoctorSnapshot));
+    check("Root data/appointments.csv existence and contents unchanged",
+          fileUnchanged(prodApptSnapshot));
   }
 
   std::cout << "\n=======================================================\n";
