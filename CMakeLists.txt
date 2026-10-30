@@ -839,6 +839,24 @@ add_test(
     NAME TC-SEC-10_RestrictDataDirectory
     COMMAND hms_restrict_data_directory_tests
 )
+
+# Issue #121: Validate entity existence in appointment filtering (HMS-F-022, TC-APT-12)
+add_executable(hms_filter_unknown_entity_tests
+    tests/test_filter_unknown_entity.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_filter_unknown_entity_tests PRIVATE include)
+
+add_test(
+    NAME TC-APT-12_FilterUnknownEntity
+    COMMAND hms_filter_unknown_entity_tests
+)
+
 # Issue #56: custom paths are allowed only in test builds.
 # Keep the production executable (hms) and the security test target unprivileged.
 # Issue #56: enable custom data paths only in existing test executables.
@@ -889,6 +907,7 @@ set(HMS_TEST_TARGETS
     hms_retain_cancelled_appointment_records_tests
     hms_minimize_patient_data_in_appointment_views_tests
     hms_sanitize_error_messages_tests
+    hms_filter_unknown_entity_tests
 )
 
 foreach(HMS_TARGET IN LISTS HMS_TEST_TARGETS)
