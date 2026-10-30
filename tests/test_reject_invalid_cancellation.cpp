@@ -372,8 +372,8 @@ int main() {
     const std::string multiDocCsv = multiDir + "/doctors.csv";
     const std::string multiApptCsv = multiDir + "/appointments.csv";
 
-    // E1: Interactive attempt with nonexistent ID "A9999"
-    // Flow: Main menu 3 (Appointment) -> 3 (Cancel) -> A9999 -> Y -> 0 (Return) -> 4 (Exit)
+        // E1: Interactive attempt with nonexistent appointment ID "A9999"
+    // Unknown appointments must be rejected before confirmation.
     {
       const std::string baselineE1 = readFile(multiApptCsv);
       const int rowsE1 = countDataRows(multiApptCsv);
@@ -381,21 +381,29 @@ int main() {
       hms::FileManager sysFm(multiPatCsv, multiDocCsv, multiApptCsv);
       hms::HospitalSystem sys(sysFm);
 
-      const std::string input = "3\n3\nA9999\nY\n0\n4\n";
+      const std::string input = "3\n3\nA9999\n0\n4\n";
       const std::string output = runInteractive(sys, input);
 
       check("Interactive E1: Displays '--- Cancel Appointment ---'",
             output.find("--- Cancel Appointment ---") != std::string::npos);
+
       check("Interactive E1: Prompts 'Enter appointment ID: '",
             output.find("Enter appointment ID: ") != std::string::npos);
-      check("Interactive E1: Prompts 'Confirm cancellation? (Y/N): '",
-            output.find("Confirm cancellation? (Y/N): ") != std::string::npos);
+
+      check("Interactive E1: Does not ask for confirmation",
+            output.find("Confirm cancellation? (Y/N): ") == std::string::npos);
+
       check("Interactive E1: Displays exact message 'Appointment not found'",
             output.find("Appointment not found") != std::string::npos);
+
       check("Interactive E1: Returns safely and displays clean exit",
             output.find("Exiting Hospital Management System.") != std::string::npos);
-      check("Interactive E1: Row count unchanged", countDataRows(multiApptCsv) == rowsE1);
-      check("Interactive E1: CSV byte-for-byte identical", readFile(multiApptCsv) == baselineE1);
+
+      check("Interactive E1: Row count unchanged",
+            countDataRows(multiApptCsv) == rowsE1);
+
+      check("Interactive E1: CSV byte-for-byte identical",
+            readFile(multiApptCsv) == baselineE1);
     }
 
     // E2: Interactive attempt with already-cancelled ID "A0002"
@@ -407,11 +415,13 @@ int main() {
       hms::FileManager sysFm(multiPatCsv, multiDocCsv, multiApptCsv);
       hms::HospitalSystem sys(sysFm);
 
-      const std::string input = "3\n3\nA0002\nY\n0\n4\n";
+      const std::string input = "3\n3\nA0002\n0\n4\n";
       const std::string output = runInteractive(sys, input);
 
       check("Interactive E2: Displays exact message 'Appointment already cancelled'",
             output.find("Appointment already cancelled") != std::string::npos);
+      check("Interactive E2: Does not ask for confirmation",
+      output.find("Confirm cancellation? (Y/N): ") == std::string::npos);
       check("Interactive E2: Returns safely and displays clean exit",
             output.find("Exiting Hospital Management System.") != std::string::npos);
       check("Interactive E2: Row count unchanged", countDataRows(multiApptCsv) == rowsE2);

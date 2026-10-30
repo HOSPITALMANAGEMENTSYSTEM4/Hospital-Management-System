@@ -1312,20 +1312,65 @@ void HospitalSystem::cancelAppointmentInteractive() {
 
   std::string appointmentId;
 
-  if (!readRequiredField("Enter appointment ID: (e.g., A0001): ", appointmentId)) {
+  if (!readRequiredField(
+          "Enter appointment ID: (e.g., A0001): ", appointmentId)) {
     return;
   }
 
-  std::cout << "Confirm cancellation? (Y/N): ";
+  // Step 1: Check whether the appointment exists.
+  const Appointment *appointment = findAppointment(appointmentId);
+
+  if (appointment == nullptr) {
+    std::cout << "Appointment not found\n";
+    return;
+  }
+
+  // Step 2: Check whether it is already cancelled.
+  if (appointment->isCancelled()) {
+    std::cout << "Appointment already cancelled\n";
+    return;
+  }
+
+  // Step 3: Retrieve patient and doctor details.
+  const Patient *patient = findPatient(appointment->getPatientId());
+  const Doctor *doctor = findDoctor(appointment->getDoctorId());
+
+  // Step 4: Display appointment summary.
+  std::cout << "\n--- Appointment Summary ---\n";
+  std::cout << "Appointment ID : " << appointment->getId() << '\n';
+  std::cout << "Patient Name   : "
+            << (patient ? patient->getName() : appointment->getPatientId())
+            << '\n';
+  std::cout << "Doctor Name    : "
+            << (doctor ? doctor->getName() : appointment->getDoctorId())
+            << '\n';
+  std::cout << "Date           : " << appointment->getDate() << '\n';
+  std::cout << "Time           : " << appointment->getTime() << '\n';
+  std::cout << "Status         : " << appointment->getStatusString() << '\n';
+
+  // Step 5: Ask for confirmation.
+  std::cout << "\nConfirm cancellation? (Y/N): ";
+
   std::string confirm;
 
   if (!std::getline(std::cin, confirm)) {
     return;
   }
 
-  confirm = trim(confirm);
-  const bool confirmed = (confirm == "Y" || confirm == "y");
-  const OpResult result = cancelAppointment(appointmentId, confirmed);
+  confirm = toUpper(trim(confirm));
+
+  if (confirm == "N") {
+    std::cout << "Cancellation cancelled by user\n";
+    return;
+  }
+
+  if (confirm != "Y") {
+    std::cout << "Invalid choice. Please enter Y or N.\n";
+    return;
+  }
+
+  // Step 6: Cancel only after confirmation.
+  const OpResult result = cancelAppointment(appointmentId, true);
   std::cout << result.message << '\n';
 }
 

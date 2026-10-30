@@ -308,6 +308,30 @@ int main() {
             output.find("Enter appointment ID: ") != std::string::npos);
       check("Interactive D1: Prompts 'Confirm cancellation? (Y/N): '",
             output.find("Confirm cancellation? (Y/N): ") != std::string::npos);
+      const size_t summaryPos = output.find("--- Appointment Summary ---");
+      const size_t confirmationPos =
+          output.find("Confirm cancellation? (Y/N): ");
+
+      check("Interactive D1: Displays appointment summary",
+            summaryPos != std::string::npos);
+      check("Interactive D1: Summary appears before confirmation",
+            summaryPos != std::string::npos &&
+            confirmationPos != std::string::npos &&
+            summaryPos < confirmationPos);
+      check("Interactive D1: Displays appointment ID",
+            output.find("Appointment ID : A0002") != std::string::npos);
+      check("Interactive D1: Displays patient name",
+            output.find("Patient Name") != std::string::npos &&
+            output.find("Charlie Brown") != std::string::npos);
+      check("Interactive D1: Displays doctor name",
+            output.find("Doctor Name") != std::string::npos &&
+            output.find("Dr. Diana Prince") != std::string::npos);
+      check("Interactive D1: Displays appointment date",
+            output.find("2026-11-15") != std::string::npos);
+      check("Interactive D1: Displays appointment time",
+            output.find("14:00") != std::string::npos);
+      check("Interactive D1: Displays current status",
+            output.find("Status         : Booked") != std::string::npos);
       check("Interactive D1: Displays 'Appointment cancelled successfully'",
             output.find("Appointment cancelled successfully") != std::string::npos);
       check("Interactive D1: Clean exit message displayed",
@@ -393,8 +417,32 @@ int main() {
       check("Interactive D5: Prompt recovers and completes successfully",
             output.find("Cancellation cancelled by user") != std::string::npos);
     }
-  }
 
+    // D6: Unknown appointment ID is rejected before confirmation.
+    {
+      hms::HospitalSystem sys(fm);
+      const std::string input = "3\n3\nA9999\n0\n4\n";
+      const std::string output = runInteractive(sys, input);
+
+      check("Interactive D6: Unknown ID displays 'Appointment not found'",
+            output.find("Appointment not found") != std::string::npos);
+
+      check("Interactive D6: Unknown ID does not ask for confirmation",
+            output.find("Confirm cancellation? (Y/N): ") == std::string::npos);
+    }
+
+    // D7: Already-cancelled appointment is rejected before confirmation.
+    {
+      hms::HospitalSystem sys(fm);
+      const std::string input = "3\n3\nA0001\n0\n4\n";
+      const std::string output = runInteractive(sys, input);
+
+      check("Interactive D7: Already-cancelled ID displays the correct message",
+            output.find("Appointment already cancelled") != std::string::npos);
+      check("Interactive D7: Already-cancelled ID does not ask for confirmation",
+            output.find("Confirm cancellation? (Y/N): ") == std::string::npos);
+    }
+     }
   // =========================================================================
   // Test E — Regression and error cases
   // =========================================================================
