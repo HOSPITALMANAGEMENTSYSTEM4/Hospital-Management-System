@@ -25,6 +25,8 @@ public:
 
   void displayStartupRecords();
   void run();
+
+  void registerPatient();
   void addDoctor();
   void viewDoctorDetails();
   void listDoctors();
@@ -57,6 +59,12 @@ public:
   // Lookup patient by ID
   const Patient *findPatient(const std::string &patientId) const;
 
+  // Lookup patient by normalized identity (name and contact number)
+  const Patient *findPatientByIdentity(
+      const std::string &name,
+      const std::string &contactNumber,
+      const std::string &excludePatientId = "") const;
+
   void updateDoctor();
 
   // Programmatic API for updating doctor details (HMS-F-013, HMS-F-014)
@@ -79,6 +87,13 @@ public:
 
   // Lookup doctor by ID
   const Doctor *findDoctor(const std::string &doctorId) const;
+
+  // Lookup doctor by normalized identity (name, contact number, and specialization)
+  const Doctor *findDoctorByIdentity(
+      const std::string &name,
+      const std::string &contactNumber,
+      const std::string &specialization,
+      const std::string &excludeDoctorId = "") const;
 
   // Programmatic API for Appointment booking (HMS-F-015)
   // Validates Patient ID, Doctor ID, date, time, checks availability,
@@ -123,7 +138,7 @@ public:
   FileManager &getFileManager();
 
 private:
-  void registerPatient();
+
   void searchPatients();
   void searchDoctors();
   void viewPatientDetails();

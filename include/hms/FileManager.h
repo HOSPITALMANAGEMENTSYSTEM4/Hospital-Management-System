@@ -25,6 +25,13 @@ public:
 
     bool patientIdExists(const std::string &patientId) const;
 
+    bool patientIdentityExists(
+        const std::string &name,
+        const std::string &contactNumber,
+        std::string *existingPatientId = nullptr,
+        const std::string &excludePatientId = ""
+    ) const;
+
     bool savePatient(
         const Patient &patient,
         std::string &errorMessage
@@ -46,6 +53,14 @@ public:
     ) const;
 
     bool doctorIdExists(const std::string &doctorId) const;
+
+    bool doctorIdentityExists(
+        const std::string &name,
+        const std::string &contactNumber,
+        const std::string &specialization,
+        std::string *existingDoctorId = nullptr,
+        const std::string &excludeDoctorId = ""
+    ) const;
 
     bool saveDoctor(
         const Doctor &doctor,
@@ -78,6 +93,9 @@ public:
         const std::vector<Appointment> &appointments,
         std::string &errorMessage
     ) const;
+
+    // Normalization helper for identity validation
+    static std::string normalizeString(const std::string &str);
 
     // File path getters
     const std::string &getPatientFilePath() const;

@@ -699,6 +699,11 @@ add_executable(hms_performance_1000_tests
 
 target_include_directories(hms_performance_1000_tests PRIVATE include)
 
+add_test(
+    NAME TC-NFR-04_Performance1000Records
+    COMMAND hms_performance_1000_tests
+)
+
 # Issue #47: Accept-list input validation (HMS-SR-001, TC-SEC-01)
 add_executable(hms_accept_list_input_validation_tests
     tests/test_accept_list_input_validation.cpp
@@ -857,6 +862,23 @@ add_test(
     COMMAND hms_filter_unknown_entity_tests
 )
 
+# Prevent Duplicate Patient and Doctor Registrations Using Identity Validation
+add_executable(hms_duplicate_identity_validation_tests
+    tests/test_duplicate_identity_validation.cpp
+    src/Appointment.cpp
+    src/Doctor.cpp
+    src/FileManager.cpp
+    src/HospitalSystem.cpp
+    src/Patient.cpp
+)
+
+target_include_directories(hms_duplicate_identity_validation_tests PRIVATE include)
+
+add_test(
+    NAME TC-ID-01_DuplicateIdentityValidation
+    COMMAND hms_duplicate_identity_validation_tests
+)
+
 # Issue #56: custom paths are allowed only in test builds.
 # Keep the production executable (hms) and the security test target unprivileged.
 # Issue #56: enable custom data paths only in existing test executables.
@@ -908,6 +930,7 @@ set(HMS_TEST_TARGETS
     hms_minimize_patient_data_in_appointment_views_tests
     hms_sanitize_error_messages_tests
     hms_filter_unknown_entity_tests
+    hms_duplicate_identity_validation_tests
 )
 
 foreach(HMS_TARGET IN LISTS HMS_TEST_TARGETS)

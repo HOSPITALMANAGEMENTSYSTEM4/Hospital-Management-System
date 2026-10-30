@@ -299,6 +299,36 @@ std::vector<Patient> FileManager::loadPatients(std::size_t *malformedCount) cons
   return patients;
 }
 
+std::string FileManager::normalizeString(const std::string &str) {
+  std::string result;
+  result.reserve(str.size());
+  bool inWhitespace = false;
+
+  std::size_t start = 0;
+  while (start < str.size() && std::isspace(static_cast<unsigned char>(str[start]))) {
+    ++start;
+  }
+  std::size_t end = str.size();
+  while (end > start && std::isspace(static_cast<unsigned char>(str[end - 1]))) {
+    --end;
+  }
+
+  for (std::size_t i = start; i < end; ++i) {
+    unsigned char c = static_cast<unsigned char>(str[i]);
+    if (std::isspace(c)) {
+      if (!inWhitespace) {
+        result.push_back(' ');
+        inWhitespace = true;
+      }
+    } else {
+      result.push_back(static_cast<char>(std::tolower(c)));
+      inWhitespace = false;
+    }
+  }
+
+  return result;
+}
+
 bool FileManager::patientIdExists(const std::string &patientId) const {
   if (!dataPathsAreSafe()) {
     return false;
@@ -308,6 +338,35 @@ bool FileManager::patientIdExists(const std::string &patientId) const {
 
   for (const Patient &patient : loadPatients()) {
     if (toLower(patient.getId()) == needle) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool FileManager::patientIdentityExists(
+    const std::string &name,
+    const std::string &contactNumber,
+    std::string *existingPatientId,
+    const std::string &excludePatientId) const {
+  if (!dataPathsAreSafe()) {
+    return false;
+  }
+
+  const std::string normName = normalizeString(name);
+  const std::string normContact = normalizeString(contactNumber);
+  const std::string normExclude = toLower(trim(excludePatientId));
+
+  for (const Patient &patient : loadPatients()) {
+    if (!normExclude.empty() && toLower(trim(patient.getId())) == normExclude) {
+      continue;
+    }
+    if (normalizeString(patient.getName()) == normName &&
+        normalizeString(patient.getContactNumber()) == normContact) {
+      if (existingPatientId) {
+        *existingPatientId = patient.getId();
+      }
       return true;
     }
   }
@@ -592,6 +651,38 @@ bool FileManager::doctorIdExists(const std::string &doctorId) const {
 
   for (const Doctor &doctor : loadDoctors()) {
     if (toLower(doctor.getId()) == needle) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool FileManager::doctorIdentityExists(
+    const std::string &name,
+    const std::string &contactNumber,
+    const std::string &specialization,
+    std::string *existingDoctorId,
+    const std::string &excludeDoctorId) const {
+  if (!dataPathsAreSafe()) {
+    return false;
+  }
+
+  const std::string normName = normalizeString(name);
+  const std::string normContact = normalizeString(contactNumber);
+  const std::string normSpec = normalizeString(specialization);
+  const std::string normExclude = toLower(trim(excludeDoctorId));
+
+  for (const Doctor &doctor : loadDoctors()) {
+    if (!normExclude.empty() && toLower(trim(doctor.getId())) == normExclude) {
+      continue;
+    }
+    if (normalizeString(doctor.getName()) == normName &&
+        normalizeString(doctor.getContactNumber()) == normContact &&
+        normalizeString(doctor.getSpecialization()) == normSpec) {
+      if (existingDoctorId) {
+        *existingDoctorId = doctor.getId();
+      }
       return true;
     }
   }
