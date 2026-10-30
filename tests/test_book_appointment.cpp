@@ -705,6 +705,121 @@ int main() {
           output.find("Doctor not available at the requested date and time") != std::string::npos);
   }
 
+
+  // Issue #119: Interactive booking retries each invalid field immediately.
+  {
+    hms::FileManager sysFm(testPatientCsv, testDoctorCsv, testApptCsv);
+    hms::HospitalSystem sys(sysFm);
+
+    const int rowsBefore = countDataRows(testApptCsv);
+
+    // Each invalid value is followed by a valid retry for the SAME field.
+    // Later fields are supplied only after the current field is accepted.
+    const std::string inputData =
+        "bad,id\n"
+        "P001\n"
+        "bad,id\n"
+        "D001\n"
+        "2026-13-40\n"
+        "2026-10-26\n"
+        "25:99\n"
+        "16:00\n";
+
+    std::istringstream inStream(inputData);
+    std::ostringstream outStream;
+    auto *cinBuf = std::cin.rdbuf(inStream.rdbuf());
+    auto *coutBuf = std::cout.rdbuf(outStream.rdbuf());
+
+    sys.bookAppointment();
+
+    std::cin.rdbuf(cinBuf);
+    std::cout.rdbuf(coutBuf);
+
+    const std::string output = outStream.str();
+    const std::string patientPrompt = "Patient ID (e.g., P001): ";
+    const std::string doctorPrompt = "Doctor ID (e.g., D001): ";
+    const std::string datePrompt = "Date (YYYY-MM-DD): ";
+    const std::string timePrompt = "Time (HH:MM, 24-hour format): ";
+
+    const auto countOccurrences = [&output](const std::string &needle) {
+      std::size_t count = 0;
+      std::size_t position = 0;
+      while ((position = output.find(needle, position)) != std::string::npos) {
+        ++count;
+        position += needle.size();
+      }
+      return count;
+    };
+
+    check("Issue #119 booking: invalid Patient ID repeats Patient ID prompt",
+          countOccurrences(patientPrompt) >= 2);
+    check("Issue #119 booking: invalid Doctor ID repeats Doctor ID prompt",
+          countOccurrences(doctorPrompt) >= 2);
+    check("Issue #119 booking: invalid date repeats Date prompt",
+          countOccurrences(datePrompt) >= 2);
+    check("Issue #119 booking: invalid time repeats Time prompt",
+          countOccurrences(timePrompt) >= 2);
+
+    const std::size_t patientFirst = output.find(patientPrompt);
+    const std::size_t patientRetry = output.find(patientPrompt, patientFirst + patientPrompt.size());
+    const std::size_t doctorFirst = output.find(doctorPrompt);
+    const std::size_t doctorRetry = output.find(doctorPrompt, doctorFirst + doctorPrompt.size());
+    const std::size_t dateFirst = output.find(datePrompt);
+    const std::size_t dateRetry = output.find(datePrompt, dateFirst + datePrompt.size());
+    const std::size_t timeFirst = output.find(timePrompt);
+    const std::size_t timeRetry = output.find(timePrompt, timeFirst + timePrompt.size());
+
+    check("Issue #119 booking: Doctor prompt appears only after Patient retry",
+          patientRetry != std::string::npos && doctorFirst > patientRetry);
+    check("Issue #119 booking: Date prompt appears only after Doctor retry",
+          doctorRetry != std::string::npos && dateFirst > doctorRetry);
+    check("Issue #119 booking: Time prompt appears only after Date retry",
+          dateRetry != std::string::npos && timeFirst > dateRetry);
+    check("Issue #119 booking: invalid values produce validation errors",
+          output.find("must") != std::string::npos ||
+          output.find("Invalid") != std::string::npos);
+
+    check("Issue #119 booking: successful booking after all field retries",
+          output.find("Appointment booked successfully.") != std::string::npos);
+    check("Issue #119 booking: exactly one appointment added after retries",
+          countDataRows(testApptCsv) == rowsBefore + 1);
+  }
+
+  // Issue #119: EOF during booking exits safely without saving a partial record.
+  {
+    hms::FileManager sysFm(testPatientCsv, testDoctorCsv, testApptCsv);
+    hms::HospitalSystem sys(sysFm);
+
+    const std::string contentBefore = readFile(testApptCsv);
+    const int rowsBefore = countDataRows(testApptCsv);
+
+    // Patient, Doctor and Date are valid; EOF occurs while reading Time.
+    const std::string inputData =
+        "P002\n"
+        "D002\n"
+        "2026-10-27\n";
+
+    std::istringstream inStream(inputData);
+    std::ostringstream outStream;
+    auto *cinBuf = std::cin.rdbuf(inStream.rdbuf());
+    auto *coutBuf = std::cout.rdbuf(outStream.rdbuf());
+
+    sys.bookAppointment();
+
+    std::cin.rdbuf(cinBuf);
+    std::cout.rdbuf(coutBuf);
+
+    const std::string output = outStream.str();
+    check("Issue #119 booking EOF: Time prompt was reached",
+          output.find("Time (HH:MM, 24-hour format): ") != std::string::npos);
+    check("Issue #119 booking EOF: no success message is printed",
+          output.find("Appointment booked successfully.") == std::string::npos);
+    check("Issue #119 booking EOF: appointment row count unchanged",
+          countDataRows(testApptCsv) == rowsBefore);
+    check("Issue #119 booking EOF: appointment CSV content unchanged",
+          readFile(testApptCsv) == contentBefore);
+  }
+
   // Cleanup isolated test CSVs
   removeFile(testPatientCsv);
   removeFile(testDoctorCsv);

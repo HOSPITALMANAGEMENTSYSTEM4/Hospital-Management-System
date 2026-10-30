@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // TC-SEC-03: Over-Length Input Safety (HMS-SR-003)
 // ============================================================================
 // Traceability:
@@ -240,32 +240,25 @@ void testSubmenus_OverLengthInput() {
 // SECTION 2: Interactive Record Entry & Subsequent Processing
 // ===========================================================================
 
+
 void testInteractivePatientRegistration_OverLengthName() {
   std::cout << "\n--- TC-SEC-03: Interactive Patient Registration with 10k Name ---\n";
   TempDb db("pat_reg_10k");
   auto sys = db.makeSystem();
 
-  // Attempt 1: Register patient with 10,000-character Name (invalid).
-  // Attempt 2: Register patient with valid details (recovery).
-  // Return to main menu (0) and exit (4).
+  // Enter an invalid name, then retry the same field with a valid name.
+  // The valid details must complete registration for P001.
   std::string inputSequence =
       "1\n"                         // Main menu -> Patient menu
       "1\n"                         // Register patient
       "P001\n"                      // ID
       + make10kString('A') + "\n"   // Over-length Name (10,000 chars)
-      "30\n"                        // Age
-      "M\n"                         // Gender
-      "9876543210\n"                // Contact
-      "123 Main St\n"               // Address
-      "None\n"                      // Med history
-      "1\n"                         // Register patient (subsequent attempt)
-      "P002\n"                      // Valid ID
-      "Alice Smith\n"               // Valid Name
-      "28\n"                        // Valid Age
-      "F\n"                         // Valid Gender
-      "9123456789\n"                // Valid Contact
-      "456 Oak Ave\n"               // Valid Address
-      "None\n"                      // Valid Med history
+      "Alice Smith\n"               // Retry Name with valid input
+      "28\n"                        // Age
+      "F\n"                         // Gender
+      "9123456789\n"                // Contact
+      "456 Oak Ave\n"               // Address
+      "None\n"                      // Medical history
       "0\n"                         // Return to main
       "4\n";                        // Exit
 
@@ -281,16 +274,33 @@ void testInteractivePatientRegistration_OverLengthName() {
   std::cout.rdbuf(origCout);
 
   const std::string out = output.str();
+
+  const std::string namePrompt = "Full name (1-50 characters): ";
+  const std::string nameError =
+      "Name: must contain 1-50 permitted characters";
+
+  const auto firstNamePrompt = out.find(namePrompt);
+  const auto validationError = out.find(nameError);
+  const auto retryNamePrompt =
+      firstNamePrompt == std::string::npos
+          ? std::string::npos
+          : out.find(namePrompt, firstNamePrompt + namePrompt.size());
+
   check("Console displays Name validation error for 10,000-character name",
-        out.find("Name: must contain 1-50 permitted characters") != std::string::npos);
-  check("No patient record created with 10,000-character name (P001 not stored)",
-        !db.makeFileManager().patientIdExists("P001"));
-  check("Subsequent valid patient registration succeeds",
-        out.find("Patient registered successfully.") != std::string::npos &&
-        out.find("Patient ID: P002") != std::string::npos);
-  check("Valid patient P002 is stored in persistent storage",
-        db.makeFileManager().patientIdExists("P002"));
-  check("Total stored patients is exactly 1",
+        validationError != std::string::npos);
+
+  check("Name prompt is repeated after the validation error",
+        validationError != std::string::npos &&
+        retryNamePrompt != std::string::npos &&
+        validationError < retryNamePrompt);
+
+  check("Patient P001 is stored after valid name retry",
+        db.makeFileManager().patientIdExists("P001"));
+
+  check("No unintended P002 patient record is created",
+        !db.makeFileManager().patientIdExists("P002"));
+
+  check("Exactly one patient is stored",
         db.makeFileManager().loadPatients().size() == 1);
 }
 
@@ -299,24 +309,25 @@ void testInteractiveDoctorAddition_OverLengthSpecialization() {
   TempDb db("doc_add_10k");
   auto sys = db.makeSystem();
 
-  std::string inputSequence =
-      "2\n"                         // Main menu -> Doctor menu
-      "1\n"                         // Add doctor
-      "D001\n"                      // ID
-      "Dr. Gregory House\n"         // Name
-      + make10kString('S') + "\n"   // Over-length Specialization (10,000 chars)
-      "Diagnostics\n"               // Department
-      "9876543210\n"                // Contact
-      "Mon-Fri 09:00-17:00\n"       // Availability
-      "1\n"                         // Add doctor (subsequent attempt)
-      "D002\n"                      // Valid ID
-      "Dr. James Wilson\n"          // Valid Name
-      "Oncology\n"                  // Valid Specialization
-      "Oncology Dept\n"             // Valid Department
-      "9123456789\n"                // Valid Contact
-      "Mon-Fri 08:00-16:00\n"       // Valid Availability
-      "0\n"                         // Return
-      "4\n";                        // Exit
+    std::string inputSequence =
+      "2\n"
+      "1\n"
+      "D001\n"
+      "Dr. Gregory House\n"
+      + make10kString('S') + "\n"
+      "Diagnostics\n"               // Retry: valid specialization
+      "Diagnostics Dept\n"          // Department
+      "9876543210\n"
+      "Mon-Fri 09:00-17:00\n"
+      "1\n"
+      "D002\n"
+      "Dr. James Wilson\n"
+      "Oncology\n"
+      "Oncology Dept\n"
+      "9123456789\n"
+      "Mon-Fri 08:00-16:00\n"
+      "0\n"
+      "4\n";
 
   std::istringstream input(inputSequence);
   std::ostringstream output;
@@ -332,15 +343,14 @@ void testInteractiveDoctorAddition_OverLengthSpecialization() {
   const std::string out = output.str();
   check("Console displays Specialization validation error for 10,000-character input",
         out.find("Specialization: must contain 1-40 characters.") != std::string::npos);
-  check("No doctor record created with 10,000-character specialization (D001 not stored)",
-        !db.makeFileManager().doctorIdExists("D001"));
-  check("Subsequent valid doctor addition succeeds",
+    check("Doctor D001 is stored only after valid specialization retry",
+        db.makeFileManager().doctorIdExists("D001"));  check("Subsequent valid doctor addition succeeds",
         out.find("Doctor added successfully.") != std::string::npos &&
         out.find("Doctor ID: D002") != std::string::npos);
   check("Valid doctor D002 is stored in persistent storage",
         db.makeFileManager().doctorIdExists("D002"));
-  check("Total stored doctors is exactly 1",
-        db.makeFileManager().loadDoctors().size() == 1);
+    check("Total stored doctors is exactly 2 after valid retry and subsequent addition",
+        db.makeFileManager().loadDoctors().size() == 2);
 }
 
 void testInteractiveAppointmentBooking_OverLengthDate() {
@@ -352,6 +362,7 @@ void testInteractiveAppointmentBooking_OverLengthDate() {
   seedPatient(sys, "P099", "Test Patient", 30, "M", "9876543210", "123 Elm St");
   seedDoctor(sys, "D099", "Dr. Test", "Cardiology", "Cardiology", "9876543210", "Mon-Fri");
 
+
   std::string inputSequence =
       "3\n"                         // Main menu -> Appointment menu
       "1\n"                         // Book appointment
@@ -359,7 +370,7 @@ void testInteractiveAppointmentBooking_OverLengthDate() {
       "D099\n"                      // Doctor ID
       + make10kString('9') + "\n"   // Over-length Date (10,000 chars)
       "14:00\n"                     // Time
-      "1\n"                         // Book appointment (subsequent attempt)
+      "1\n"                         // Book appointment again
       "P099\n"                      // Valid Patient ID
       "D099\n"                      // Valid Doctor ID
       "2026-11-20\n"                // Valid Date

@@ -1,4 +1,4 @@
-// TC-PAT-06  Update Patient Details (HMS-F-006, HMS-F-007)
+﻿// TC-PAT-06  Update Patient Details (HMS-F-006, HMS-F-007)
 //
 // Acceptance Criteria:
 //   - A valid update to an existing patient is saved to patients.csv.
@@ -509,22 +509,61 @@ int main() {
                                                                    out.find("0. Return") != std::string::npos);
     }
 
-    // 10J: Invalid input at update field prompt rejected
-    {
-      // Inputs: 1 -> 4 -> P001 -> 1 -> Doe, John (invalid comma in name) -> 0 -> 4
-      const std::string out = runInteractive(system, "1\n4\nP001\n1\nDoe, John\n0\n4\n");
-      check("Interactive: Reject invalid name with error message",
-            out.find("must contain 1-50 permitted characters") != std::string::npos);
-      const hms::Patient *p = system.findPatient("P001");
-      check("Interactive: State protected, Name still Sarah Connor", p != nullptr && p->getName() == "Sarah Connor");
 
-      // Inputs: 1 -> 4 -> P001 -> 5 -> 700, Cyber St (invalid comma in address) -> 0 -> 4
-      const std::string outAddr = runInteractive(system, "1\n4\nP001\n5\n700, Cyber St\n0\n4\n");
+    // 10J: Invalid field input is rejected and the same field is retried.
+    {
+      // Invalid name followed by the original valid name.
+      const std::string out = runInteractive(
+          system,
+          "1\n4\nP001\n1\nDoe, John\nSarah Connor\n0\n4\n");
+
+      const std::string namePrompt = "Enter new name (1-50 characters): ";
+      const auto nameError =
+          out.find("must contain 1-50 permitted characters");
+      const auto nameRetry =
+          out.find(namePrompt, out.find(namePrompt) + namePrompt.size());
+
+      check("Interactive: Reject invalid name with error message",
+            nameError != std::string::npos);
+
+      check("Interactive: Repeats name prompt after validation error",
+            nameError != std::string::npos &&
+            nameRetry != std::string::npos &&
+            nameError < nameRetry);
+
+      const hms::Patient *p = system.findPatient("P001");
+      check("Interactive: State protected, Name still Sarah Connor",
+            p != nullptr && p->getName() == "Sarah Connor");
+
+      // Invalid address followed by the original valid address.
+      const std::string outAddr = runInteractive(
+          system,
+          "1\n4\nP001\n5\n700, Cyber St\n700 Cyber St\n0\n4\n");
+
+      const std::string addressPrompt =
+          "Enter new address (1-100 characters): ";
+      const auto addressError =
+          outAddr.find("commas and line breaks are not allowed");
+      const auto firstAddressPrompt = outAddr.find(addressPrompt);
+      const auto addressRetry =
+          firstAddressPrompt == std::string::npos
+              ? std::string::npos
+              : outAddr.find(addressPrompt,
+                             firstAddressPrompt + addressPrompt.size());
+
       check("Interactive: Reject invalid address comma with error message",
-            outAddr.find("commas and line breaks are not allowed") != std::string::npos);
+            addressError != std::string::npos);
+
+      check("Interactive: Repeats address prompt after validation error",
+            addressError != std::string::npos &&
+            addressRetry != std::string::npos &&
+            addressError < addressRetry);
+
       const hms::Patient *pAddr = system.findPatient("P001");
-      check("Interactive: State protected, Address still 700 Cyber St", pAddr != nullptr && pAddr->getAddress() == "700 Cyber St");
+      check("Interactive: State protected, Address still 700 Cyber St",
+            pAddr != nullptr && pAddr->getAddress() == "700 Cyber St");
     }
+
 
     // 10K: Invalid menu choice in update menu
     {

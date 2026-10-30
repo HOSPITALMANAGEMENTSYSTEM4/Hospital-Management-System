@@ -1,4 +1,4 @@
-
+﻿
 #include "hms/HospitalSystem.h"
 
 #include <algorithm>
@@ -63,7 +63,28 @@ bool readRequiredField(const std::string &prompt, std::string &value) {
 
   return true;
 }
+template <typename Validator>
+bool readValidatedField(const std::string &prompt,
+                        std::string &value,
+                        Validator validator) {
+  while (true) {
+    std::cout << prompt;
 
+    if (!std::getline(std::cin, value)) {
+      return false;
+    }
+
+    value = trim(value);
+
+    std::string validationError;
+
+    if (validator(value, validationError)) {
+      return true;
+    }
+
+    std::cout << validationError << '\n';
+  }
+}
 void displayPatientDetails(const Patient &patient) {
   std::cout << "\n--- Patient Details ---\n"
             << "Patient ID: " << patient.getId() << '\n'
@@ -151,7 +172,7 @@ void HospitalSystem::run() {
   }
 }
 
-// HMS-F-032, SRS §3.1 - Patient submenu
+// HMS-F-032, SRS Â§3.1 - Patient submenu
 void HospitalSystem::patientMenu() {
   while (true) {
     std::cout << "\n=== Patient Management ===\n"
@@ -187,7 +208,7 @@ void HospitalSystem::patientMenu() {
   }
 }
 
-// HMS-F-032, SRS §3.1 - Doctor submenu
+// HMS-F-032, SRS Â§3.1 - Doctor submenu
 void HospitalSystem::doctorMenu() {
   while (true) {
     std::cout << "\n=== Doctor Management ===\n"
@@ -223,7 +244,7 @@ void HospitalSystem::doctorMenu() {
   }
 }
 
-// HMS-F-032, SRS §3.1 - Appointment submenu
+// HMS-F-032, SRS Â§3.1 - Appointment submenu
 void HospitalSystem::appointmentMenu() {
   while (true) {
     std::cout << "\n=== Appointment Management ===\n"
@@ -270,42 +291,91 @@ void HospitalSystem::registerPatient() {
   std::string address;
   std::string medicalHistory;
 
-  if (!readRequiredField("Patient ID (1-10 alphanumeric characters, e.g., P001): ", id) ||
-      !readRequiredField("Full name (1-50 characters): ", name)) {
+  // Patient ID: validate format and check duplicates before continuing.
+  while (true) {
+    if (!readValidatedField(
+            "Patient ID (1-10 alphanumeric characters, e.g., P001): ",
+            id,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateId(value, error);
+            })) {
+      return;
+    }
+
+    if (!fileManager_.patientIdExists(toUpper(id))) {
+      break;
+    }
+
+    std::cout << "Patient ID already exists\n";
+  }
+
+  // Full name.
+  if (!readValidatedField(
+          "Full name (1-50 characters): ",
+          name,
+          [](const std::string &value, std::string &error) {
+            return Patient::validateName(value, error);
+          })) {
     return;
   }
 
-  std::cout << "Age (0-120): ";
-
-  if (!std::getline(std::cin, ageInput)) {
-    return;
-  }
-
+  // Age.
   int age = 0;
 
-  if (!parseAge(trim(ageInput), age)) {
-    std::cout << "Age: must be a whole number from 0 to 120.\n";
+  if (!readValidatedField(
+          "Age (0-120): ",
+          ageInput,
+          [&age](const std::string &value, std::string &error) {
+            return Patient::validateAge(value, age, error);
+          })) {
     return;
   }
 
-  if (!readRequiredField("Gender (M/F/O): ", gender) ||
-      !readRequiredField("Contact number (10 digits): ", contactNumber) ||
-      !readRequiredField("Address (1-100 characters): ", address)) {
+  // Gender.
+  if (!readValidatedField(
+          "Gender (M/F/O): ",
+          gender,
+          [](const std::string &value, std::string &error) {
+            return Patient::validateGender(value, error);
+          })) {
     return;
   }
 
-  std::cout << "Medical history (optional, up to 200 characters; press Enter to skip): ";
-
-  if (!std::getline(std::cin, medicalHistory)) {
+  // Contact number.
+  if (!readValidatedField(
+          "Contact number (10 digits): ",
+          contactNumber,
+          [](const std::string &value, std::string &error) {
+            return Patient::validateContactNumber(value, error);
+          })) {
     return;
   }
 
-  medicalHistory = trim(medicalHistory);
+  // Address.
+  if (!readValidatedField(
+          "Address (1-100 characters): ",
+          address,
+          [](const std::string &value, std::string &error) {
+            return Patient::validateAddress(value, error);
+          })) {
+    return;
+  }
 
-  // The Patient constructor normalizes the ID and gender to uppercase.
+  // Medical history is optional, but must not exceed 200 characters.
+  if (!readValidatedField(
+          "Medical history (optional, up to 200 characters; press Enter to skip): ",
+          medicalHistory,
+          [](const std::string &value, std::string &error) {
+            return Patient::validateMedicalHistory(value, error);
+          })) {
+    return;
+  }
+
+  // The constructor normalizes the ID and gender to uppercase.
   const Patient patient(id, name, age, gender, contactNumber, address,
                         medicalHistory);
 
+  // Final validation remains as a safeguard before persistence.
   std::string validationError;
 
   if (!patient.validate(validationError)) {
@@ -313,7 +383,7 @@ void HospitalSystem::registerPatient() {
     return;
   }
 
-  // Case-insensitive duplicate detection.
+  // Check for duplicates again before saving.
   if (fileManager_.patientIdExists(patient.getId())) {
     std::cout << "Patient ID already exists\n";
     return;
@@ -441,24 +511,36 @@ void HospitalSystem::updatePatient() {
   std::cout << "\n--- Update Patient ---\n";
 
   std::string id;
-  if (!readRequiredField("Enter patient ID: (1-10 alphanumeric characters, e.g., P001): ", id)) {
-    return;
-  }
-
-  const std::string searchId = toUpper(trim(id));
-  const std::vector<Patient> patients = fileManager_.loadPatients();
+  std::vector<Patient> patients;
   const Patient *targetPatient = nullptr;
 
-  for (const Patient &patient : patients) {
-    if (toUpper(patient.getId()) == searchId) {
-      targetPatient = &patient;
+  // Validate Patient ID and retry if it is invalid or not found.
+  while (true) {
+    if (!readValidatedField(
+            "Enter patient ID (1-10 alphanumeric characters, e.g., P001): ",
+            id,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateId(value, error);
+            })) {
+      return;
+    }
+
+    const std::string searchId = toUpper(trim(id));
+    patients = fileManager_.loadPatients();
+    targetPatient = nullptr;
+
+    for (const Patient &patient : patients) {
+      if (toUpper(patient.getId()) == searchId) {
+        targetPatient = &patient;
+        break;
+      }
+    }
+
+    if (targetPatient != nullptr) {
       break;
     }
-  }
 
-  if (!targetPatient) {
     std::cout << "Patient not found\n";
-    return;
   }
 
   displayPatientDetails(*targetPatient);
@@ -485,6 +567,7 @@ void HospitalSystem::updatePatient() {
     return;
   }
 
+  // Preserve existing values for fields not selected for updating.
   std::string newName = targetPatient->getName();
   int newAge = targetPatient->getAge();
   std::string newGender = targetPatient->getGender();
@@ -493,67 +576,140 @@ void HospitalSystem::updatePatient() {
   std::string newMed = targetPatient->getMedicalHistory();
 
   if (choice == "1") {
-    if (!readRequiredField("Enter new name (1-50 characters): ", newName)) {
+    if (!readValidatedField(
+            "Enter new name (1-50 characters): ",
+            newName,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateName(value, error);
+            })) {
       return;
     }
+
   } else if (choice == "2") {
-    std::cout << "Enter new age (0-120): ";
     std::string ageInput;
-    if (!std::getline(std::cin, ageInput)) {
+
+    if (!readValidatedField(
+            "Enter new age (0-120): ",
+            ageInput,
+            [&newAge](const std::string &value, std::string &error) {
+              return Patient::validateAge(value, newAge, error);
+            })) {
       return;
     }
-    if (!parseAge(trim(ageInput), newAge)) {
-      std::cout << "Age: must be a whole number from 0 to 120.\n";
-      return;
-    }
+
   } else if (choice == "3") {
-    if (!readRequiredField("Enter new gender (M/F/O): ", newGender)) {
+    if (!readValidatedField(
+            "Enter new gender (M/F/O): ",
+            newGender,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateGender(value, error);
+            })) {
       return;
     }
+
   } else if (choice == "4") {
-    if (!readRequiredField("Enter new contact number (10 digits): ", newContact)) {
+    if (!readValidatedField(
+            "Enter new contact number (10 digits): ",
+            newContact,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateContactNumber(value, error);
+            })) {
       return;
     }
+
   } else if (choice == "5") {
-    if (!readRequiredField("Enter new address (1-100 characters): ", newAddress)) {
+    if (!readValidatedField(
+            "Enter new address (1-100 characters): ",
+            newAddress,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateAddress(value, error);
+            })) {
       return;
     }
+
   } else if (choice == "6") {
-    std::cout << "Enter new medical history (optional, up to 200 characters; press Enter to skip): ";
-    if (!std::getline(std::cin, newMed)) {
+    if (!readValidatedField(
+            "Enter new medical history (optional, up to 200 characters; press Enter to skip): ",
+            newMed,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateMedicalHistory(value, error);
+            })) {
       return;
     }
-    newMed = trim(newMed);
+
   } else if (choice == "7") {
-    if (!readRequiredField("Full name (1-50 characters): ", newName)) {
+
+    if (!readValidatedField(
+            "Full name (1-50 characters): ",
+            newName,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateName(value, error);
+            })) {
       return;
     }
-    std::cout << "Age (0-120): ";
+
     std::string ageInput;
-    if (!std::getline(std::cin, ageInput)) {
+
+    if (!readValidatedField(
+            "Age (0-120): ",
+            ageInput,
+            [&newAge](const std::string &value, std::string &error) {
+              return Patient::validateAge(value, newAge, error);
+            })) {
       return;
     }
-    if (!parseAge(trim(ageInput), newAge)) {
-      std::cout << "Age: must be a whole number from 0 to 120.\n";
+
+    if (!readValidatedField(
+            "Gender (M/F/O): ",
+            newGender,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateGender(value, error);
+            })) {
       return;
     }
-    if (!readRequiredField("Gender (M/F/O): ", newGender) ||
-        !readRequiredField("Contact number (10 digits): ", newContact) ||
-        !readRequiredField("Address (1-100 characters): ", newAddress)) {
+
+    if (!readValidatedField(
+            "Contact number (10 digits): ",
+            newContact,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateContactNumber(value, error);
+            })) {
       return;
     }
-    std::cout << "Medical history (optional, up to 200 characters; press Enter to skip): ";
-    if (!std::getline(std::cin, newMed)) {
+
+    if (!readValidatedField(
+            "Address (1-100 characters): ",
+            newAddress,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateAddress(value, error);
+            })) {
       return;
     }
-    newMed = trim(newMed);
+
+    if (!readValidatedField(
+            "Medical history (optional, up to 200 characters; press Enter to skip): ",
+            newMed,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateMedicalHistory(value, error);
+            })) {
+      return;
+    }
+
   } else {
     std::cout << "Invalid choice. Enter 0 to 7.\n";
     return;
   }
 
-  const OpResult result = updatePatient(targetPatient->getId(), newName, newAge,
-                                       newGender, newContact, newAddress, newMed);
+  // Persist only after every selected field has passed validation.
+  const OpResult result = updatePatient(
+      targetPatient->getId(),
+      newName,
+      newAge,
+      newGender,
+      newContact,
+      newAddress,
+      newMed);
+
   std::cout << result.message << '\n';
 }
 
@@ -686,18 +842,74 @@ void HospitalSystem::addDoctor() {
   std::string contactNumber;
   std::string availability;
 
-  if (!readRequiredField("Doctor ID (1-10 alphanumeric characters, e.g., D001): ", id) ||
-      !readRequiredField("Full name (1-50 characters): ", name) ||
-      !readRequiredField("Specialization (1-40 characters): ", specialization) ||
-      !readRequiredField("Department (1-40 characters): ", department) ||
-      !readRequiredField("Contact number (10 digits): ", contactNumber) ||
-      !readRequiredField("Availability (1-60 characters, e.g., Mon-Fri 09:00-17:00): ", availability)) {
+  // Validate Doctor ID and retry duplicate IDs before continuing.
+  while (true) {
+    if (!readValidatedField(
+            "Doctor ID (1-10 alphanumeric characters, e.g., D001): ",
+            id,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateId(value, error);
+            })) {
+      return;
+    }
+
+    if (!fileManager_.doctorIdExists(toUpper(id))) {
+      break;
+    }
+
+    std::cout << "Doctor ID already exists\n";
+  }
+
+  // Validate each field immediately after input.
+  if (!readValidatedField(
+          "Full name (1-50 characters): ",
+          name,
+          [](const std::string &value, std::string &error) {
+            return Doctor::validateName(value, error);
+          })) {
+    return;
+  }
+
+  if (!readValidatedField(
+          "Specialization (1-40 characters): ",
+          specialization,
+          [](const std::string &value, std::string &error) {
+            return Doctor::validateSpecialization(value, error);
+          })) {
+    return;
+  }
+
+  if (!readValidatedField(
+          "Department (1-40 characters): ",
+          department,
+          [](const std::string &value, std::string &error) {
+            return Doctor::validateDepartment(value, error);
+          })) {
+    return;
+  }
+
+  if (!readValidatedField(
+          "Contact number (10 digits): ",
+          contactNumber,
+          [](const std::string &value, std::string &error) {
+            return Doctor::validateContactNumber(value, error);
+          })) {
+    return;
+  }
+
+  if (!readValidatedField(
+          "Availability (1-60 characters, e.g., Mon-Fri 09:00-17:00): ",
+          availability,
+          [](const std::string &value, std::string &error) {
+            return Doctor::validateAvailability(value, error);
+          })) {
     return;
   }
 
   const Doctor doctor(id, name, specialization, department, contactNumber,
                       availability);
 
+  // Final validation safeguard before saving.
   std::string validationError;
 
   if (!doctor.validate(validationError)) {
@@ -705,6 +917,7 @@ void HospitalSystem::addDoctor() {
     return;
   }
 
+  // Check duplicates again immediately before persistence.
   if (fileManager_.doctorIdExists(doctor.getId())) {
     std::cout << "Doctor ID already exists\n";
     return;
@@ -739,6 +952,7 @@ void HospitalSystem::addDoctor() {
   std::cout << "\nDoctor added successfully.\n"
             << "Doctor ID: " << doctor.getId() << '\n';
 }
+
 
 void HospitalSystem::viewDoctorDetails() {
   std::cout << "\n--- View Doctor Details ---\n";
@@ -833,90 +1047,138 @@ void HospitalSystem::updateDoctor() {
   std::cout << "\n--- Update Doctor ---\n";
 
   std::string id;
-  if (!readRequiredField("Enter doctor ID: (1-10 alphanumeric characters, e.g., D001): ", id)) {
-    return;
-  }
-
-  const std::string searchId = toUpper(trim(id));
-  const std::vector<Doctor> doctors = fileManager_.loadDoctors();
   const Doctor *targetDoctor = nullptr;
+  std::vector<Doctor> doctors;
 
-  for (const Doctor &doctor : doctors) {
-    if (toUpper(doctor.getId()) == searchId) {
-      targetDoctor = &doctor;
+  // Validate the Doctor ID and retry if it is invalid or not found.
+  while (true) {
+    if (!readValidatedField(
+            "Enter doctor ID: (1-10 alphanumeric characters, e.g., D001): ",
+            id,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateId(value, error);
+            })) {
+      return;
+    }
+
+    const std::string searchId = toUpper(trim(id));
+    doctors = fileManager_.loadDoctors();
+    targetDoctor = nullptr;
+
+    for (const Doctor &doctor : doctors) {
+      if (toUpper(doctor.getId()) == searchId) {
+        targetDoctor = &doctor;
+        break;
+      }
+    }
+
+    if (targetDoctor != nullptr) {
       break;
     }
-  }
 
-  if (!targetDoctor) {
-    std::cout << "Doctor not found\n";
-    return;
+    std::cout << "Doctor not found. Please try again.\n";
   }
 
   displayDoctorDetails(*targetDoctor);
 
-  std::cout << "\nSelect field to update:\n"
-            << "1. Name\n"
-            << "2. Specialization\n"
-            << "3. Department\n"
-            << "4. Contact number\n"
-            << "5. Availability\n"
-            << "6. All fields\n"
-            << "0. Return\n"
-            << "Enter choice: ";
-
   std::string choice;
-  if (!std::getline(std::cin, choice)) {
-    return;
+
+  // Keep asking until the user enters a valid menu choice.
+  while (true) {
+    std::cout << "\nSelect field to update:\n"
+              << "1. Name\n"
+              << "2. Specialization\n"
+              << "3. Department\n"
+              << "4. Contact number\n"
+              << "5. Availability\n"
+              << "6. All fields\n"
+              << "0. Return\n"
+              << "Enter choice: ";
+
+    if (!std::getline(std::cin, choice)) {
+      return;
+    }
+
+    choice = trim(choice);
+
+    if (choice == "0") {
+      return;
+    }
+
+    if (choice >= "1" && choice <= "6" && choice.size() == 1) {
+      break;
+    }
+
+    std::cout << "Invalid choice. Enter 0 to 6.\n";
   }
 
-  choice = trim(choice);
-
-  if (choice == "0") {
-    return;
-  }
-
+  // Preserve existing values for fields not selected for update.
   std::string newName = targetDoctor->getName();
   std::string newSpec = targetDoctor->getSpecialization();
   std::string newDept = targetDoctor->getDepartment();
   std::string newContact = targetDoctor->getContactNumber();
   std::string newAvail = targetDoctor->getAvailability();
 
-  if (choice == "1") {
-    if (!readRequiredField("Enter new name (1-50 characters): ", newName)) {
+  if (choice == "1" || choice == "6") {
+    if (!readValidatedField(
+            choice == "6" ? "Full name (1-50 characters): "
+                          : "Enter new name (1-50 characters): ",
+            newName,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateName(value, error);
+            })) {
       return;
     }
-  } else if (choice == "2") {
-    if (!readRequiredField("Enter new specialization (1-40 characters): ", newSpec)) {
-      return;
-    }
-  } else if (choice == "3") {
-    if (!readRequiredField("Enter new department (1-40 characters): ", newDept)) {
-      return;
-    }
-  } else if (choice == "4") {
-    if (!readRequiredField("Enter new contact number (10 digits): ", newContact)) {
-      return;
-    }
-  } else if (choice == "5") {
-    if (!readRequiredField("Enter new availability (1-60 characters, e.g., Mon-Fri 09:00-17:00): ", newAvail)) {
-      return;
-    }
-  } else if (choice == "6") {
-    if (!readRequiredField("Full name (1-50 characters): ", newName) ||
-        !readRequiredField("Specialization (1-40 characters): ", newSpec) ||
-        !readRequiredField("Department (1-40 characters): ", newDept) ||
-        !readRequiredField("Contact number (10 digits): ", newContact) ||
-        !readRequiredField("Availability (1-60 characters, e.g., Mon-Fri 09:00-17:00): ", newAvail)) {
-      return;
-    }
-  } else {
-    std::cout << "Invalid choice. Enter 0 to 6.\n";
-    return;
   }
 
-  const OpResult result = updateDoctor(targetDoctor->getId(), newName, newSpec,
-                                       newDept, newContact, newAvail);
+  if (choice == "2" || choice == "6") {
+    if (!readValidatedField(
+            "Enter new specialization (1-40 characters): ",
+            newSpec,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateSpecialization(value, error);
+            })) {
+      return;
+    }
+  }
+
+  if (choice == "3" || choice == "6") {
+    if (!readValidatedField(
+            "Enter new department (1-40 characters): ",
+            newDept,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateDepartment(value, error);
+            })) {
+      return;
+    }
+  }
+
+  if (choice == "4" || choice == "6") {
+    if (!readValidatedField(
+            "Enter new contact number (10 digits): ",
+            newContact,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateContactNumber(value, error);
+            })) {
+      return;
+    }
+  }
+
+  if (choice == "5" || choice == "6") {
+    if (!readValidatedField(
+            "Enter new availability (1-60 characters, e.g., Mon-Fri 09:00-17:00): ",
+            newAvail,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateAvailability(value, error);
+            })) {
+      return;
+    }
+  }
+
+  // Save only after every selected field has passed validation.
+  const OpResult result = updateDoctor(
+      targetDoctor->getId(), newName, newSpec, newDept, newContact, newAvail);
+
   std::cout << result.message << '\n';
 }
 
@@ -1187,10 +1449,54 @@ void HospitalSystem::bookAppointment() {
   std::string date;
   std::string time;
 
-  if (!readRequiredField("Patient ID (e.g., P001): ", patientId) ||
-      !readRequiredField("Doctor ID (e.g., D001): ", doctorId) ||
-      !readRequiredField("Date (YYYY-MM-DD): ", date) ||
-      !readRequiredField("Time (HH:MM, 24-hour format): ", time)) {
+  // Validate the patient ID and confirm that the patient exists before
+  // prompting for the next field.
+  while (true) {
+    if (!readValidatedField(
+            "Patient ID (e.g., P001): ", patientId,
+            [](const std::string &value, std::string &error) {
+              return Patient::validateId(value, error);
+            })) {
+      return;
+    }
+
+    if (fileManager_.patientIdExists(toUpper(patientId))) {
+      break;
+    }
+
+    std::cout << "Patient not found. Please try again.\n";
+  }
+
+  // Validate the doctor ID and confirm that the doctor exists immediately.
+  while (true) {
+    if (!readValidatedField(
+            "Doctor ID (e.g., D001): ", doctorId,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateId(value, error);
+            })) {
+      return;
+    }
+
+    if (fileManager_.doctorIdExists(toUpper(doctorId))) {
+      break;
+    }
+
+    std::cout << "Doctor not found. Please try again.\n";
+  }
+
+  if (!readValidatedField(
+          "Date (YYYY-MM-DD): ", date,
+          [](const std::string &value, std::string &error) {
+            return Appointment::validateDate(value, error);
+          })) {
+    return;
+  }
+
+  if (!readValidatedField(
+          "Time (HH:MM, 24-hour format): ", time,
+          [](const std::string &value, std::string &error) {
+            return Appointment::validateTime(value, error);
+          })) {
     return;
   }
 
@@ -1407,17 +1713,46 @@ const Appointment* HospitalSystem::findAppointment(
   return nullptr;
 }
 
+
 void HospitalSystem::cancelAppointmentInteractive() {
   std::cout << "\n--- Cancel Appointment ---\n";
 
   std::string appointmentId;
 
-  if (!readRequiredField(
-          "Enter appointment ID: (e.g., A0001): ", appointmentId)) {
-    return;
+  // Retry invalid, unknown, or already-cancelled appointment IDs.
+  while (true) {
+    if (!readValidatedField(
+            "Enter appointment ID: (e.g., A0001): ", appointmentId,
+            [](const std::string &value, std::string &error) {
+              return Appointment::validateId(value, error);
+            })) {
+      return;
+    }
+
+    const auto appointments = fileManager_.loadAppointments();
+    const std::string targetId = toUpper(appointmentId);
+
+    const auto found = std::find_if(
+        appointments.begin(), appointments.end(),
+        [&targetId](const Appointment &appointment) {
+          return toUpper(appointment.getId()) == targetId;
+        });
+
+    if (found == appointments.end()) {
+      std::cout << "Appointment not found. Please try again.\n";
+      continue;
+    }
+
+    if (found->isCancelled()) {
+      std::cout
+          << "Appointment already cancelled. Please try another ID.\n";
+      continue;
+    }
+
+    break;
   }
 
-  // Step 1: Check whether the appointment exists.
+  // Retrieve appointment and related details.
   const Appointment *appointment = findAppointment(appointmentId);
 
   if (appointment == nullptr) {
@@ -1425,17 +1760,10 @@ void HospitalSystem::cancelAppointmentInteractive() {
     return;
   }
 
-  // Step 2: Check whether it is already cancelled.
-  if (appointment->isCancelled()) {
-    std::cout << "Appointment already cancelled\n";
-    return;
-  }
-
-  // Step 3: Retrieve patient and doctor details.
   const Patient *patient = findPatient(appointment->getPatientId());
   const Doctor *doctor = findDoctor(appointment->getDoctorId());
 
-  // Step 4: Display appointment summary.
+  // Display appointment summary.
   std::cout << "\n--- Appointment Summary ---\n";
   std::cout << "Appointment ID : " << appointment->getId() << '\n';
   std::cout << "Patient Name   : "
@@ -1448,29 +1776,27 @@ void HospitalSystem::cancelAppointmentInteractive() {
   std::cout << "Time           : " << appointment->getTime() << '\n';
   std::cout << "Status         : " << appointment->getStatusString() << '\n';
 
-  // Step 5: Ask for confirmation.
-  std::cout << "\nConfirm cancellation? (Y/N): ";
-
+  // Validate confirmation.
   std::string confirm;
 
-  if (!std::getline(std::cin, confirm)) {
+  if (!readValidatedField(
+          "Confirm cancellation? (Y/N): ", confirm,
+          [](const std::string &value, std::string &error) {
+            const std::string normalized = toUpper(value);
+
+            if (normalized == "Y" || normalized == "N") {
+              return true;
+            }
+
+            error = "Invalid confirmation. Enter Y or N.";
+            return false;
+          })) {
     return;
   }
 
-  confirm = toUpper(trim(confirm));
+  const bool confirmed = (toUpper(confirm) == "Y");
+  const OpResult result = cancelAppointment(appointmentId, confirmed);
 
-  if (confirm == "N") {
-    std::cout << "Cancellation cancelled by user\n";
-    return;
-  }
-
-  if (confirm != "Y") {
-    std::cout << "Invalid choice. Please enter Y or N.\n";
-    return;
-  }
-
-  // Step 6: Cancel only after confirmation.
-  const OpResult result = cancelAppointment(appointmentId, true);
   std::cout << result.message << '\n';
 }
 
@@ -1481,14 +1807,42 @@ void HospitalSystem::checkDoctorAvailabilityInteractive() {
   std::string date;
   std::string time;
 
-  if (!readRequiredField("Enter doctor ID: (e.g., D001): ", doctorId) ||
-      !readRequiredField("Date (YYYY-MM-DD): ", date) ||
-      !readRequiredField("Time (HH:MM, 24-hour format): ", time)) {
+  // Validate the doctor ID and verify existence before asking for a date.
+  while (true) {
+    if (!readValidatedField(
+            "Enter doctor ID (e.g., D001): ", doctorId,
+            [](const std::string &value, std::string &error) {
+              return Doctor::validateId(value, error);
+            })) {
+      return;
+    }
+
+    if (fileManager_.doctorIdExists(toUpper(doctorId))) {
+      break;
+    }
+
+    std::cout << "Doctor not found. Please try again.\n";
+  }
+
+  if (!readValidatedField(
+          "Date (YYYY-MM-DD): ", date,
+          [](const std::string &value, std::string &error) {
+            return Appointment::validateDate(value, error);
+          })) {
+    return;
+  }
+
+  if (!readValidatedField(
+          "Time (HH:MM, 24-hour format): ", time,
+          [](const std::string &value, std::string &error) {
+            return Appointment::validateTime(value, error);
+          })) {
     return;
   }
 
   std::string message;
-  const bool available = checkDoctorAvailability(doctorId, date, time, message);
+  const bool available =
+      checkDoctorAvailability(doctorId, date, time, message);
   std::cout << (available ? "Available" : "Not available") << ": "
             << message << '\n';
 }

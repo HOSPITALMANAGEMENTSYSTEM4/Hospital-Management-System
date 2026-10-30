@@ -382,9 +382,12 @@ int main() {
             out.find("Available: Available") != std::string::npos);
     }
 
-    // 4. Interactive check for Unknown doctor
+    // 4. Interactive check for Unknown doctor.
+    // Issue #119: reject the unknown ID immediately and retry the same field
+    // before asking for the date or time.
     {
-      std::istringstream input("3\n4\nDOC999\n2026-11-10\n10:00\n0\n4\n");
+      std::istringstream input(
+          "3\n4\nDOC999\nD001\n2026-11-10\n10:00\n0\n4\n");
       std::ostringstream output;
 
       auto *origCin = std::cin.rdbuf(input.rdbuf());
@@ -396,13 +399,33 @@ int main() {
       std::cout.rdbuf(origCout);
 
       const std::string out = output.str();
-      check("Interactive menu reports 'Not available: Doctor not found'",
-            out.find("Not available: Doctor not found") != std::string::npos);
+      const std::size_t firstDoctorPrompt = out.find("Enter doctor ID");
+      const std::size_t secondDoctorPrompt =
+          firstDoctorPrompt == std::string::npos
+              ? std::string::npos
+              : out.find("Enter doctor ID", firstDoctorPrompt + 1);
+      const std::size_t datePrompt = out.find("Date (YYYY-MM-DD): ");
+
+      check("Interactive menu rejects unknown doctor with retry message",
+            out.find("Doctor not found. Please try again.") != std::string::npos);
+      check("Interactive menu repeats doctor ID prompt after unknown ID",
+            firstDoctorPrompt != std::string::npos &&
+            secondDoctorPrompt != std::string::npos);
+      check("Interactive menu asks for date only after valid doctor ID",
+            secondDoctorPrompt != std::string::npos &&
+            datePrompt != std::string::npos &&
+            secondDoctorPrompt < datePrompt);
+      check("Interactive menu continues availability check with valid doctor",
+            out.find("Not available: Doctor not available at the requested date and time") !=
+                std::string::npos);
     }
 
-    // 5. Interactive check with empty required input (handles gracefully)
+    // 5. Interactive check with empty doctor ID.
+    // Issue #119: retry the same field instead of returning to the menu or
+    // asking for the date prematurely.
     {
-      std::istringstream input("3\n4\n\n0\n4\n");
+      std::istringstream input(
+          "3\n4\n\nD001\n2026-11-10\n11:00\n0\n4\n");
       std::ostringstream output;
 
       auto *origCin = std::cin.rdbuf(input.rdbuf());
@@ -414,10 +437,25 @@ int main() {
       std::cout.rdbuf(origCout);
 
       const std::string out = output.str();
-      check("Interactive menu detects empty field with 'This field is required.'",
-            out.find("This field is required.") != std::string::npos);
-      check("Interactive menu returns safely to appointment management menu",
-            out.find("=== Appointment Management ===") != std::string::npos);
+      const std::size_t firstDoctorPrompt = out.find("Enter doctor ID");
+      const std::size_t secondDoctorPrompt =
+          firstDoctorPrompt == std::string::npos
+              ? std::string::npos
+              : out.find("Enter doctor ID", firstDoctorPrompt + 1);
+      const std::size_t datePrompt = out.find("Date (YYYY-MM-DD): ");
+
+      check("Interactive menu displays the specific empty Doctor ID validation error",
+            out.find("Doctor ID: must contain 1-10 alphanumeric characters.") !=
+                std::string::npos);
+      check("Interactive menu retries the doctor ID field after empty input",
+            firstDoctorPrompt != std::string::npos &&
+            secondDoctorPrompt != std::string::npos);
+      check("Interactive menu does not ask for date until doctor ID is valid",
+            secondDoctorPrompt != std::string::npos &&
+            datePrompt != std::string::npos &&
+            secondDoctorPrompt < datePrompt);
+      check("Interactive menu completes availability check after valid retry",
+            out.find("Available: Available") != std::string::npos);
     }
 
     check("appointments.csv byte-for-byte unchanged after all interactive checks",

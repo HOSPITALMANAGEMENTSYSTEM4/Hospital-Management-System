@@ -407,13 +407,13 @@ int main() {
     // D5: Empty appointment ID in interactive flow
     {
       hms::HospitalSystem sys(fm);
-      // Attempt empty appointment ID, which prompts "This field is required.",
-      // safely returns to appointment menu, then re-select 3 (Cancel), enter A0005 and N
+      // Empty appointment ID is rejected immediately by Appointment::validateId.
+      // The flow returns safely to the appointment menu; then cancel A0005 and decline.
       const std::string input = "3\n3\n\n3\nA0005\nN\n0\n4\n";
       const std::string output = runInteractive(sys, input);
 
-      check("Interactive D5: Empty ID displays 'This field is required.'",
-            output.find("This field is required.") != std::string::npos);
+      check("Interactive D5: Empty ID displays the specific appointment ID validation error",
+            output.find("Appointment ID: must start with 'A' followed by at least 4 digits.") != std::string::npos);
       check("Interactive D5: Prompt recovers and completes successfully",
             output.find("Cancellation cancelled by user") != std::string::npos);
     }
