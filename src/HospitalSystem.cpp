@@ -1174,6 +1174,22 @@ std::vector<Appointment> HospitalSystem::listAppointments(
 void HospitalSystem::viewAppointments(const std::string &filterType,
                                       const std::string &filterId) {
   std::cout << "\n--- View Appointments ---\n";
+
+  const std::string filterUpper = toUpper(trim(filterType));
+  const std::string targetId = trim(filterId);
+
+  if (filterUpper == "PATIENT") {
+    if (!targetId.empty() && !fileManager_.patientIdExists(targetId)) {
+      std::cout << "Patient not found\n";
+      return;
+    }
+  } else if (filterUpper == "DOCTOR") {
+    if (!targetId.empty() && !fileManager_.doctorIdExists(targetId)) {
+      std::cout << "Doctor not found\n";
+      return;
+    }
+  }
+
   std::size_t malformedCount = 0;
   const auto appointments = listAppointments(filterType, filterId, &malformedCount);
 

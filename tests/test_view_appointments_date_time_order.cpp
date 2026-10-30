@@ -317,6 +317,14 @@ int main() {
   // =========================================================================
   std::cout << "\n-- Test D: Empty Data and Empty Filtered Results --\n";
   {
+    std::string seedNoApptErr;
+    fm.savePatient(
+        hms::Patient("P999", "Patient No Appts", 30, "M", "9999999999", "123 St", "None"),
+        seedNoApptErr);
+    fm.saveDoctor(
+        hms::Doctor("D999", "Dr No Appts", "General", "General Dept", "9999999999", "Mon-Fri 09:00-17:00"),
+        seedNoApptErr);
+
     // 1. Patient with no appointments (P999)
     const std::string outNonExistentPat = captureViewAppointments(system, "PATIENT", "P999");
     check("Patient with no appointments displays 'No appointments found.'",
