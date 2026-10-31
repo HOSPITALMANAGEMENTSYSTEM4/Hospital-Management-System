@@ -389,10 +389,8 @@ int main() {
 
       check("Interactive E1: Prompts 'Enter appointment ID: '",
             output.find("Enter appointment ID: ") != std::string::npos);
-
-      check("Interactive E1: Does not ask for confirmation",
+      check("Interactive E1: Does not ask for confirmation after rejecting a nonexistent ID",
             output.find("Confirm cancellation? (Y/N): ") == std::string::npos);
-
       check("Interactive E1: Displays exact message 'Appointment not found'",
             output.find("Appointment not found") != std::string::npos);
 

@@ -466,13 +466,20 @@ int main() {
     check("CSV row count unchanged after invalid contact attempt", countDataRows(systemDoctorCsv) == 1);
   }
 
-  // Required field empty rejection in console workflow
+    // Immediate validation and retry for an empty required field
   {
     hms::FileManager sysFm("data/patients.csv", systemDoctorCsv);
     hms::HospitalSystem sys(sysFm);
 
-    // Empty Doctor ID line
-    std::string inputData = "\n";
+    // Empty Doctor ID, followed by a valid ID and valid remaining fields.
+    std::string inputData =
+        "\n"
+        "DOC2003\n"
+        "Dr. Sarah Connor\n"
+        "Orthopedics\n"
+        "Surgery\n"
+        "9876543210\n"
+        "Mon-Fri 09:00-17:00\n";
 
     std::istringstream inStream(inputData);
     std::ostringstream outStream;
@@ -486,12 +493,33 @@ int main() {
     std::cout.rdbuf(coutBuf);
 
     std::string output = outStream.str();
-    check("Console displays This field is required", output.find("This field is required.") != std::string::npos);
-    check("CSV row count unchanged after empty field attempt", countDataRows(systemDoctorCsv) == 1);
+
+    const std::string idPrompt =
+        "Doctor ID (1-10 alphanumeric characters, e.g., D001): ";
+
+    const size_t firstPrompt = output.find(idPrompt);
+    const size_t validationError =
+        output.find("Doctor ID: must contain 1-10 alphanumeric characters.");
+    const size_t retryPrompt =
+        output.find(idPrompt, firstPrompt + idPrompt.size());
+
+    check("Empty Doctor ID displays specific validation error",
+          validationError != std::string::npos);
+
+    check("Doctor ID is prompted again after validation error",
+          firstPrompt != std::string::npos &&
+          retryPrompt != std::string::npos &&
+          validationError < retryPrompt);
+
+    check("Valid Doctor ID is accepted after retry",
+          output.find("Doctor added successfully.") != std::string::npos);
+
+    check("CSV contains original and successfully retried doctor",
+          countDataRows(systemDoctorCsv) == 2);
+
+    check("Retried doctor is saved",
+          sysFm.doctorIdExists("DOC2003"));
   }
-
-  removeFile(systemDoctorCsv);
-
   // =========================================================================
   // Summary
   // =========================================================================

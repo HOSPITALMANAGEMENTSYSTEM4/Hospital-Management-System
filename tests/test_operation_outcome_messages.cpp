@@ -111,9 +111,8 @@ int main() {
                   != std::string::npos);
 
         // A failed cancellation must produce a meaningful reason.
-        const std::string cancellation =
-            runWithInput(system, "3\n3\nUNKNOWN\nY\n0\n4\n");
-
+                const std::string cancellation =
+            runWithInput(system, "3\n3\nUNKNOWN\nA9999\n");
         check("Cancellation failure reports a reason",
               cancellation.find("Appointment not found")
                   != std::string::npos);

@@ -401,7 +401,7 @@ int main() {
     // 5. Doctor Availability Prompts state formats
     const std::string availOut = runInteractive(sys, "3\n4\nD001\n2026-11-20\n\n0\n4\n");
     check("Availability Doctor ID states format (e.g., D001)",
-          availOut.find("Enter doctor ID: (e.g., D001): ") != std::string::npos);
+            availOut.find("Enter doctor ID (e.g., D001): ") != std::string::npos);
     check("Availability Time states format (HH:MM, 24-hour format)",
           availOut.find("Time (HH:MM, 24-hour format): ") != std::string::npos);
   }

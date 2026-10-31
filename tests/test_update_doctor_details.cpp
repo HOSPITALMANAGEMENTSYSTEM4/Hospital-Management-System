@@ -421,11 +421,13 @@ int main() {
 
     hms::HospitalSystem system(testDir);
 
-    // 10A: Unknown Doctor ID entered at Update Doctor prompt
+    // 10A: Unknown Doctor ID is rejected and the ID prompt is retried.
     {
-      // Inputs: 2 (Doctor Menu) -> 4 (Update) -> DOC999 (ID) -> 0 (Return) -> 4 (Exit)
-      const std::string out = runInteractive(system, "2\n4\nDOC999\n0\n4\n");
+      // Inputs: Doctor menu -> Update -> unknown ID -> valid ID -> Return -> Exit
+      const std::string out = runInteractive(system, "2\n4\nDOC999\nDOC01\n0\n4\n");
       check("Interactive: displays 'Doctor not found'", out.find("Doctor not found") != std::string::npos);
+      check("Interactive: retries Doctor ID after unknown ID",
+            out.find("Enter doctor ID:") != std::string::npos);
     }
 
     // 10B: Update individual field: choice 1 (Name)
@@ -499,21 +501,33 @@ int main() {
                                                                   out.find("0. Return") != std::string::npos);
     }
 
-    // 10I: Invalid input at update field prompt rejected
+    // 10I: Invalid field input is rejected and the same field is retried.
     {
-      // Inputs: 2 -> 4 -> DOC01 -> 1 -> Chase, Robert (invalid comma in name) -> 0 -> 4
-      const std::string out = runInteractive(system, "2\n4\nDOC01\n1\nChase, Robert\n0\n4\n");
+      // Invalid name followed by a valid retry of the same field.
+      const std::string out = runInteractive(
+          system, "2\n4\nDOC01\n1\nChase, Robert\nDr. Robert Chase\n");
       check("Interactive: Reject invalid name with error message",
             out.find("must contain 1-50 permitted characters") != std::string::npos);
+      check("Interactive: Name prompt appears again after validation error",
+            out.find("Enter new name") != std::string::npos);
+      check("Interactive: Valid name accepted after retry",
+            out.find("Doctor updated successfully") != std::string::npos);
       const hms::Doctor *d = system.findDoctor("DOC01");
-      check("Interactive: State protected, Name still Dr. Robert Chase", d != nullptr && d->getName() == "Dr. Robert Chase");
+      check("Interactive: Name remains Dr. Robert Chase after valid retry",
+            d != nullptr && d->getName() == "Dr. Robert Chase");
 
-      // Inputs: 2 -> 4 -> DOC01 -> 2 -> Cardio, Neuro (invalid comma in specialization) -> 0 -> 4
-      const std::string outSpec = runInteractive(system, "2\n4\nDOC01\n2\nCardio, Neuro\n0\n4\n");
+      // Invalid specialization followed by a valid retry of the same field.
+      const std::string outSpec = runInteractive(
+          system, "2\n4\nDOC01\n2\nCardio, Neuro\nSurgery\n");
       check("Interactive: Reject invalid specialization comma with error message",
             outSpec.find("commas and line breaks are not allowed") != std::string::npos);
+      check("Interactive: Specialization prompt appears again after validation error",
+            outSpec.find("Enter new specialization") != std::string::npos);
+      check("Interactive: Valid specialization accepted after retry",
+            outSpec.find("Doctor updated successfully") != std::string::npos);
       const hms::Doctor *dSpec = system.findDoctor("DOC01");
-      check("Interactive: State protected, Specialization still Surgery", dSpec != nullptr && dSpec->getSpecialization() == "Surgery");
+      check("Interactive: Specialization remains Surgery after valid retry",
+            dSpec != nullptr && dSpec->getSpecialization() == "Surgery");
     }
 
     // 10J: Invalid menu choice in update menu
