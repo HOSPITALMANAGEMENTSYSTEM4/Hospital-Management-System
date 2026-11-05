@@ -2,11 +2,11 @@
 # DELIVERABLE PART-3: TEST CASE DOCUMENT
 ## Comprehensive Test Case Specifications Reflecting Sprint 1 & Sprint 2 Implementations
 
-**Document Identifier:** TCD-HMS-2026-V2.0
-**Document Version:** 2.0 (Post-Sprint 1 & Sprint 2 Baseline Update)
-**Date:** November 2026
-**Course:** Software Engineering Mini-Project
-**Institution:** Department of Computer Science and Engineering, PES University
+**Document Identifier:** TCD-HMS-2026-V2.0<br>
+**Document Version:** 2.0 (Post-Sprint 1 & Sprint 2 Baseline Update)<br>
+**Date:** November 2026<br>
+**Course:** Software Engineering Mini-Project<br>
+**Institution:** Department of Computer Science and Engineering, PES University<br>
 **Project Team:**
 - **Hrushikesh Karnam** (SRN: PES1UG24CS668) — QA Lead
 - **Muruli H** (SRN: PES1UG24CS676) — Test Engineer
@@ -19,8 +19,10 @@
 
 | Version | Date | Author(s) | Description of Changes | Approved By |
 |:---|:---|:---|:---|:---|
-| **1.0** | 20-Oct-2026 | QA Lead & Test Engineer | Initial Software Test Plan (STP-HMS-2026-V1.0) baseline containing 54 requirements and 10 representative test case specifications. | Project Team |
-| **2.0** | 02-Nov-2026 | Full Project Team | Comprehensive Deliverable Part-3 update. Examined all implementations merged in Sprint 1 (PRs #60–#90) and Sprint 2 (PRs #91–#127). Expanded test specifications from 10 representative cases to 60 exhaustive detailed test cases (54 baseline + 6 supplementary sprint additions). Added immediate field retry rules, duplicate identity heuristics, cancellation confirmation workflows, and sanitized error assertions. | Course Evaluator |
+| **1.0** | 20-Oct-2026 | QA Lead & Test Engineer | Initial Software Test Plan (STP-HMS-2026-V1.0) baseline containing 54 requirements and 10 representative test case specifications. *(Note: Cover page printed as '20 November 2026'; internal revision records cite 20-Oct-2026).* | Project Team |
+| **2.0** | 02-Nov-2026 | Full Project Team | Comprehensive Deliverable Part-3 update. Examined all implementations merged in Sprint 1 (PRs #60–#90) and Sprint 2 (PRs #91–#127). Expanded test specifications from 10 representative cases to 60 exhaustive detailed test cases (54 baseline + 6 supplementary sprint additions). Added immediate field retry rules, duplicate identity heuristics, cancellation confirmation workflows, and sanitized error assertions. | Pending Course Evaluator Review |
+
+*Baseline Date Note:* On the title page of the baseline Software Test Plan PDF (`DOCS/Software_Test_Plan.pdf`), the document date is printed as "Date: 20 November 2026". However, its internal document control table, revision history, and all subsequent Sprint 1 and Sprint 2 reports consistently establish its creation date as 20 October 2026. This updated document maintains traceability to that October 2026 baseline.
 
 ---
 
@@ -714,11 +716,11 @@ Test data sets are partitioned into:
 | **Test Level** | System / Integration |
 | **Preconditions** | Application state snapshot taken prior to test. |
 | **Test Data** | `Attempt registering patient with invalid contact number.` |
-| **Execution Steps** | 1. Capture record counts and CSV checksums.<br>2. Initiate patient registration and enter invalid contact.<br>3. Abort operation.<br>4. Re-check record counts and file checksums. |
+| **Execution Steps** | 1. Capture initial record counts and file byte content.<br>2. Initiate patient registration and enter invalid contact.<br>3. Abort operation.<br>4. Re-check record counts and file byte content. |
 | **Expected Result** | No partial patient record is stored in memory or written to patients.csv; state is byte-identical. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #84. Exercised across unit test harnesses. |
+| **Remarks / Evidence** | PR #84. No dedicated CTest target; verified across tests/test_reject_invalid_menu_options.cpp and tests/test_csv_write_failures.cpp. |
 
 ### Test Case Specification: TC-UI-04 — Standard Operation Outcome Messaging
 
@@ -829,7 +831,7 @@ Test data sets are partitioned into:
 | **Expected Result** | Startup file loading completes in < 3.0 seconds; booking and search operations complete in < 2.0 seconds. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #106, #125. CTest target: TC-NFR-04_Performance1000Records. |
+| **Remarks / Evidence** | PR #106, #125. CTest target: TC-NFR-04_Performance1000Records. (Measures in-memory / file I/O latency via displayStartupRecords(), booking, and search; full OS launch is verified manually). |
 
 ### Test Case Specification: TC-NFR-05 — UI Usability and Maximum Menu Depth
 
@@ -883,7 +885,7 @@ Test data sets are partitioned into:
 | **Expected Result** | Build succeeds with zero compilation errors and warnings on both platforms. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #107. Build-time CMake configuration verification. |
+| **Remarks / Evidence** | PR #107. Build-time CMake configuration verification; Linux GCC build validated via .github/workflows/linux-build.yml; Windows build validated with MinGW/MSVC (-std=c++17 -Wall). Lacks standalone CTest executable target. |
 
 ### Test Case Specification: TC-NFR-08 — Appointment Conflict Matrix Correctness
 
@@ -919,13 +921,13 @@ Test data sets are partitioned into:
 | **Expected Result** | Zero network imports verified; application runs with full capability in air-gapped environment. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #105, #116. CTest target: TC-NFR-09_StandaloneOffline. |
+| **Remarks / Evidence** | PR #105, #116. CTest target: TC-NFR-09_StandaloneOffline (symbol verification via objdump); air-gapped execution validated on offline machine. |
 
-### Test Case Specification: TC-NFR-010 — Human-Readable CSV File Interoperability
+### Test Case Specification: TC-NFR-10 — Human-Readable CSV File Interoperability
 
 | Attribute | Specification Detail |
 |:---|:---|
-| **Test Case ID** | `TC-NFR-010` |
+| **Test Case ID** | `TC-NFR-10` |
 | **Requirement ID** | `HMS-NF-010` |
 | **Title** | Human-Readable CSV File Interoperability |
 | **Test Objective** | Verify data files are valid delimiter-separated plain text with headers, readable in standard text editors. |
@@ -1014,11 +1016,11 @@ Test data sets are partitioned into:
 | **Execution Status** | **Not Executed** |
 | **Remarks / Evidence** | PR #112. Exercised via TC-PER-03_SkipMalformedCSV and TC-NFR-02_RobustStartup. |
 
-### Test Case Specification: TC-SEC-05 — Non-Destructive File Writing (Atomic Safety)
+### Test Case Specification: TC-PER-07 — Non-Destructive File Writing (Atomic Safety)
 
 | Attribute | Specification Detail |
 |:---|:---|
-| **Test Case ID** | `TC-SEC-05` |
+| **Test Case ID** | `TC-PER-07` |
 | **Requirement ID** | `HMS-SR-005` |
 | **Title** | Non-Destructive File Writing (Atomic Safety) |
 | **Test Objective** | Verify that previous file content is retained intact if a write operation fails. |
@@ -1026,17 +1028,17 @@ Test data sets are partitioned into:
 | **Test Level** | Integration |
 | **Preconditions** | Valid patients.csv exists; write failure simulated via read-only file permissions. |
 | **Test Data** | `Attempt adding patient record.` |
-| **Execution Steps** | 1. Capture SHA-256 hash of patients.csv.<br>2. Set file read-only.<br>3. Trigger write operation.<br>4. Re-calculate SHA-256 hash. |
+| **Execution Steps** | 1. Capture initial file byte content of patients.csv.<br>2. Set file read-only.<br>3. Trigger write operation.<br>4. Re-read and compare file content byte-for-byte. |
 | **Expected Result** | Error reported; file content remains 100% byte-identical to original pre-operation state. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #113. Tested under TC-PER-07_HandleCSVWriteFailures. |
+| **Remarks / Evidence** | Official STP Table 7 test ID is TC-PER-07 (alias TC-SEC-05 in sprint notes). Atomic non-destructive write logic verified via CTest target TC-PER-07_HandleCSVWriteFailures (PR #113). |
 
-### Test Case Specification: TC-SEC-06 — Non-Deletion Audit Trail Integrity
+### Test Case Specification: TC-APT-09 — Non-Deletion Audit Trail Integrity
 
 | Attribute | Specification Detail |
 |:---|:---|
-| **Test Case ID** | `TC-SEC-06` |
+| **Test Case ID** | `TC-APT-09` |
 | **Requirement ID** | `HMS-SR-006` |
 | **Title** | Non-Deletion Audit Trail Integrity |
 | **Test Objective** | Verify that cancelled appointments are preserved in appointments.csv for audit compliance. |
@@ -1048,7 +1050,7 @@ Test data sets are partitioned into:
 | **Expected Result** | Row count remains identical; status column is updated from Booked to Cancelled; no physical deletion occurs. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #114. CTest target: TC-SEC-06_RetainCancelledAppointmentRecords. |
+| **Remarks / Evidence** | Official STP Table 7 test ID is TC-APT-09 (alias TC-SEC-06 in sprint notes). Dedicated security CTest target TC-SEC-06_RetainCancelledAppointmentRecords added in PR #114. |
 
 ### Test Case Specification: TC-SEC-07 — Patient Data Privacy Minimization in Appointment Views
 
@@ -1068,11 +1070,11 @@ Test data sets are partitioned into:
 | **Execution Status** | **Not Executed** |
 | **Remarks / Evidence** | PR #115. CTest target: TC-SEC-07_MinimizePatientDataInAppointmentViews. |
 
-### Test Case Specification: TC-SEC-08 — Air-Gapped Network Isolation Verification
+### Test Case Specification: TC-NFR-09 — Air-Gapped Network Isolation Verification
 
 | Attribute | Specification Detail |
 |:---|:---|
-| **Test Case ID** | `TC-SEC-08` |
+| **Test Case ID** | `TC-NFR-09` |
 | **Requirement ID** | `HMS-SR-008` |
 | **Title** | Air-Gapped Network Isolation Verification |
 | **Test Objective** | Verify zero network socket initialization or telemetry transmission during execution. |
@@ -1084,10 +1086,14 @@ Test data sets are partitioned into:
 | **Expected Result** | Zero network symbols found; application is certified for strict air-gapped operation. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #105, #116. Tested via TC-NFR-09_StandaloneOffline. |
+| **Remarks / Evidence** | Official STP Table 7 test ID is TC-NFR-09 (alias TC-SEC-08 in sprint notes). Verified via objdump network symbol inspection in test_standalone_offline.cmake (CTest target TC-NFR-09_StandaloneOffline) and PR #116. |
 
 
 ## 15. Detailed Additional Sprint Test Cases (Supplementary Scope)
+
+> [!NOTE]
+> **Supplementary Project Scope ID Notice:** The test cases in this section validate capabilities and hardening introduced during Sprint 1 and Sprint 2 that extend beyond the frozen 54-requirement denominator of STP v1.0. They are formally tracked in Part B of the RTM.
+
 
 ### Test Case Specification: TC-SEC-09 — Sanitize Filesystem Error Messages
 
@@ -1105,7 +1111,7 @@ Test data sets are partitioned into:
 | **Expected Result** | Error message provides friendly explanation without exposing absolute paths (e.g. C:\Users\...), stack traces, or raw data. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #117 (Issue #55). CTest target: TC-SEC-09_SanitizeErrorMessages. |
+| **Remarks / Evidence** | Supplementary Project Scope ID — Not part of the original approved SRS/STP baseline. PR #117 (Issue #55). CTest target: TC-SEC-09_SanitizeErrorMessages. |
 
 ### Test Case Specification: TC-SEC-10 — Restrict File Operations to Designated Data Directory
 
@@ -1123,7 +1129,7 @@ Test data sets are partitioned into:
 | **Expected Result** | System confines file I/O strictly to designated data directory; arbitrary paths rejected. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #118 (Issue #56). CTest target: TC-SEC-10_RestrictDataDirectory. |
+| **Remarks / Evidence** | Supplementary Project Scope ID — Not part of the original approved SRS/STP baseline. PR #118 (Issue #56). CTest target: TC-SEC-10_RestrictDataDirectory. |
 
 ### Test Case Specification: TC-APT-11 — Appointment Cancellation Confirmation Workflow
 
@@ -1132,16 +1138,16 @@ Test data sets are partitioned into:
 | **Test Case ID** | `TC-APT-11` |
 | **Requirement ID** | `HMS-F-023-EXT` |
 | **Title** | Appointment Cancellation Confirmation Workflow |
-| **Test Objective** | Verify appointment summary display (Patient, Doctor, Date, Time, Status) and Y/N confirmation before cancelling. |
+| **Test Objective** | Verify appointment summary display (Patient Name, Doctor Name, Date, Time, Status) and strict Y/N confirmation loop before cancelling. |
 | **Test Type** | Positive / Negative Functional |
 | **Test Level** | System |
-| **Preconditions** | Active appointment A0001 exists. |
-| **Test Data** | `Input sequence: A0001 -> 'invalid' -> 'N' -> A0001 -> 'Y'` |
-| **Execution Steps** | 1. Select Cancel Appointment.<br>2. Enter Appointment ID 'A0001'.<br>3. Inspect displayed summary.<br>4. Enter 'invalid'. Observe retry.<br>5. Enter 'N'. Verify cancellation aborted.<br>6. Re-enter and confirm 'Y'. |
-| **Expected Result** | Summary displays all key appointment fields. Entering 'N' aborts without changes. Confirming 'Y' cancels appointment. |
+| **Preconditions** | Active appointment A0001 exists with status Booked for Patient P001 and Doctor D001 on 2026-11-15 at 10:00. |
+| **Test Data** | `Input sequence: A0001 -> 'maybe' -> 'N' -> A0001 -> 'Y'` |
+| **Execution Steps** | 1. Select Cancel Appointment.<br>2. Enter Appointment ID 'A0001'.<br>3. Inspect displayed summary block (Appointment ID, Patient Name, Doctor Name, Date, Time, Status).<br>4. Enter invalid confirmation 'maybe'. Observe error 'Invalid confirmation. Enter Y or N.' and re-prompt.<br>5. Enter 'N'. Verify output 'Cancellation cancelled by user.' and appointments.csv remains unmodified.<br>6. Re-initiate cancellation for 'A0001' and enter 'Y'. |
+| **Expected Result** | Summary displays all key appointment fields. Entering 'N' aborts without modifying records. Confirming 'Y' cancels appointment with message 'Appointment cancelled successfully' and persists Cancelled status to appointments.csv. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #122 (Issue #120). Tested in tests/test_cancel_appointment.cpp. |
+| **Remarks / Evidence** | Supplementary Project Scope ID — Not part of the original approved SRS/STP baseline. PR #122 (Issue #120). Tested in tests/test_cancel_appointment.cpp. |
 
 ### Test Case Specification: TC-APT-12 — Filter Unknown Entity in Appointment Views
 
@@ -1159,7 +1165,7 @@ Test data sets are partitioned into:
 | **Expected Result** | Nonexistent IDs (P999, D999) display exact error 'Patient not found' or 'Doctor not found'. Registered entities with zero appointments (P002, D002) display 'No appointments found.'. Matching appointments displayed chronologically. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #123 (Issue #121). CTest target: TC-APT-12_FilterUnknownEntity (69 assertions passed). |
+| **Remarks / Evidence** | Supplementary Project Scope ID — Not part of the original approved SRS/STP baseline. PR #123 (Issue #121). CTest target: TC-APT-12_FilterUnknownEntity (69 assertions passed). |
 
 ### Test Case Specification: TC-ID-01 — Duplicate Patient and Doctor Identity Validation
 
@@ -1168,16 +1174,16 @@ Test data sets are partitioned into:
 | **Test Case ID** | `TC-ID-01` |
 | **Requirement ID** | `HMS-F-001/008-EXT` |
 | **Title** | Duplicate Patient and Doctor Identity Validation |
-| **Test Objective** | Verify detection of duplicate human individuals using normalized name, contact, and address/department heuristics. |
+| **Test Objective** | Verify heuristic detection of duplicate human individuals (Patient: normalized name + contact; Doctor: normalized name + contact + specialization) and explicit Y/N confirmation loop. |
 | **Test Type** | Data Integrity |
 | **Test Level** | System / Integration |
-| **Preconditions** | Patient P001 (John Doe, 9876543210) and Doctor D001 (Dr. Alice Smith, 9876543211) exist. |
-| **Test Data** | `Patient registration: P002, 'john doe', '9876543210'. Confirmation: 'N' then 'Y'.` |
-| **Execution Steps** | 1. Attempt registering Patient P002 with matching name and contact.<br>2. Observe duplicate identity warning displaying existing ID P001.<br>3. Enter 'N'. Verify registration aborted.<br>4. Re-attempt and enter 'Y'. Verify registration allowed. |
-| **Expected Result** | System detects identity similarity, warns user with existing ID, and requires explicit confirmation (Y/N) before saving. |
+| **Preconditions** | Patient P001 ('John Doe', contact '9876543210') exists in patients.csv. Doctor D001 ('Dr. Alice Smith', spec 'Cardiology', contact '9876543211') exists in doctors.csv. |
+| **Test Data** | `Patient flow: P002, 'john doe', '9876543210', confirm 'N' then 'Y'. Doctor flow: D002, 'alice smith', 'Cardiology', contact '9876543211', confirm 'N' then 'Y'.` |
+| **Execution Steps** | 1. In Patient Registration, enter ID P002, name '  john   doe  ', age 30, gender M, contact '9876543210', address '456 Oak St', note 'None'.<br>2. Observe warning 'Warning: Potential duplicate patient record: matches existing patient with ID P001' and prompt 'Proceed with registration? (Y/N): '.<br>3. Enter 'N'. Verify output 'Registration cancelled.' and patients.csv remains byte-identical.<br>4. Re-enter same data and enter 'Y'. Verify registration succeeds and saves P002.<br>5. Register patient with name 'John Doe' but different contact '9111111111'. Verify no warning displayed.<br>6. In Doctor Registration, enter ID D002, name 'alice smith', spec 'Cardiology', dept 'Cardio', contact '9876543211', avail 'Mon-Fri 09:00-17:00'.<br>7. Observe warning 'Warning: Potential duplicate doctor record: matches existing doctor with ID D001' and prompt.<br>8. Enter 'N'. Verify cancellation. Enter 'Y' on re-attempt. Verify save.<br>9. Add doctor with name 'Dr. Alice Smith', contact '9876543211' but different specialization 'Neurology'. Verify no warning displayed. |
+| **Expected Result** | System detects identity similarity using normalized name + contact (patient) and normalized name + contact + specialization (doctor). Displays exact warning with existing ID; entering 'N' cancels registration leaving CSV files byte-identical; entering 'Y' completes registration. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #125 (Issue #124). CTest target: TC-ID-01_DuplicateIdentityValidation. |
+| **Remarks / Evidence** | Supplementary Project Scope ID — Not part of the original approved SRS/STP baseline. PR #125 (Issue #124). CTest target: TC-ID-01_DuplicateIdentityValidation. |
 
 ### Test Case Specification: TC-VAL-01 — Universal Immediate Field-Level Validation and Interactive Retry
 
@@ -1191,16 +1197,16 @@ Test data sets are partitioned into:
 | **Test Level** | System |
 | **Preconditions** | Application running at interactive console data entry forms. |
 | **Test Data** | `Invalid entries followed by valid corrections across patient, doctor, and appointment forms.` |
-| **Execution Steps** | 1. In Patient Registration, enter invalid Age '150'. Observe error.<br>2. Verify system prompts for Age again immediately.<br>3. Enter valid Age '30'. Verify system advances to Gender.<br>4. In Appointment Booking, enter invalid Date. Observe immediate retry. |
-| **Expected Result** | System validates each field immediately, displays rule violation, and prompts for immediate retry while preserving previously validated fields. |
+| **Execution Steps** | 1. In Patient Registration, enter invalid Age '150'. Observe rule-specific error message.<br>2. Verify system prompts for Age again immediately without losing previously entered ID and Name.<br>3. Enter valid Age '30'. Verify system advances to Gender.<br>4. Enter invalid Gender 'Z'. Observe error and immediate retry.<br>5. In Appointment Booking, enter invalid Date '2026-02-30'. Observe immediate error and re-prompt for Date. |
+| **Expected Result** | System validates each field immediately using the readValidatedField template, displays rule violation, and prompts for immediate retry while preserving previously validated fields. |
 | **Actual Result** | Not Executed (Document update baseline; historical test run verified in Sprint 1/2) |
 | **Execution Status** | **Not Executed** |
-| **Remarks / Evidence** | PR #127 (Issue #119). Integrated across test_book_appointment.cpp, test_add_doctor.cpp, etc. |
+| **Remarks / Evidence** | Supplementary Project Scope ID — Not part of the original approved SRS/STP baseline. PR #127 (Issue #119). Note: No dedicated standalone CTest target executable; verified across interactive test targets (TC-APT-01_BookAppointment, TC-APT-09_CancelAppointment, TC-DOC-01_AddDoctor, TC-PAT-05_PatientDetailsAndRegistrationPersistence, TC-PAT-06_UpdatePatientDetails, TC-DOC-06_UpdateDoctorDetails). |
 
 
 ## 16. Sprint 1 and Sprint 2 Change Traceability
 
-Across Sprint 1 (19–23 October 2026) and Sprint 2 (26–30 October 2026), 45 pull requests were merged into `main`. The table below outlines how these sprint implementations evolved the system's test coverage:
+Across Sprint 1 (19–23 October 2026: 31 merged PRs #60–#90), Sprint 2 (26–30 October 2026: 31 merged PRs #91–#118, #122, #123, #125), and immediate post-sprint follow-up (30/31 October 2026: PR #127), a total of 63 pull requests were merged into `main`. The table below outlines how these sprint implementations evolved the system's test coverage:
 
 | Functional Area | Baseline STP Coverage | Sprint 1 & Sprint 2 Enhancements | Resulting Test Case Specifications |
 |:---|:---|:---|:---|
@@ -1209,7 +1215,7 @@ Across Sprint 1 (19–23 October 2026) and Sprint 2 (26–30 October 2026), 45 p
 | **Appointment Management** | Basic booking, FK rejection, conflict check, view, cancel | Leap year calendar checks, double-booking rejection, slot rebooking after cancellation, chronological sorting, confirmation workflow, entity validation on filter | `TC-APT-01` to `TC-APT-10`, `TC-APT-11`, `TC-APT-12` |
 | **Persistence & File I/O** | Startup load, missing files, malformed rows | Duplicate & orphan row skipping, immediate flush, atomic non-destructive write safety, restart data retention | `TC-PER-01` to `TC-PER-07` |
 | **Console UI** | Menu hierarchy, invalid option rejection | Process return code 0, standardized outcome messaging, transactional state protection, menu depth $\le 3$ | `TC-UI-01` to `TC-UI-05` |
-| **Non-Functional Quality** | Latency, robustness, class isolation, offline | 1,000-record performance benchmarks, air-gapped objdump verification, 20+ input crash resilience vectors | `TC-NFR-01` to `TC-NFR-010` |
+| **Non-Functional Quality** | Latency, robustness, class isolation, offline | 1,000-record performance benchmarks, air-gapped objdump verification, 20+ input crash resilience vectors | `TC-NFR-01` to `TC-NFR-10` |
 | **Security & Privacy** | Accept-list validation, injection guards, privacy | Filesystem error message sanitization, strict data directory access, over-length buffer safety, audit retention | `TC-SEC-01` to `TC-SEC-10` |
 
 ---
@@ -1217,7 +1223,7 @@ Across Sprint 1 (19–23 October 2026) and Sprint 2 (26–30 October 2026), 45 p
 ## 17. Updated Requirements Traceability Matrix Summary
 
 The complete, bidirectional Requirements Traceability Matrix is provided in the companion document:
-[`DOCS/PART3_TESTING/02_Updated_Requirements_Traceability_Matrix.md`](file:///C:/Users/hp/Desktop/SE_grp/DOCS/PART3_TESTING/02_Updated_Requirements_Traceability_Matrix.md).
+[`02_Updated_Requirements_Traceability_Matrix.md`](02_Updated_Requirements_Traceability_Matrix.md).
 
 - **Part A (Baseline Scope):** Maps all 54 baseline requirements (`HMS-F-001` through `HMS-SR-008`) to official STP test cases, updated test cases, CTest targets, and source files.
 - **Part B (Supplementary Scope):** Maps all 6 sprint additions (`HMS-SR-009`, `HMS-SR-010`, `HMS-F-022-EXT`, `HMS-F-001/008-EXT`, `HMS-F-023-EXT`, `HMS-F-003/010/018-EXT`) to dedicated test cases and CTest targets.
@@ -1252,8 +1258,8 @@ The complete, bidirectional Requirements Traceability Matrix is provided in the 
 
 | Role | Name | Signature / Status | Date |
 |:---|:---|:---:|:---:|
-| **QA Lead / Student** | Hrushikesh Karnam | Approved | 02-Nov-2026 |
-| **Test Engineer / Student** | Muruli H | Approved | 02-Nov-2026 |
-| **Developer Lead / Student** | Mandagandla Jhansi | Approved | 02-Nov-2026 |
-| **Support Lead / Student** | Neeta R | Approved | 02-Nov-2026 |
-| **Course Coordinator / Evaluator** | Mini-Project Evaluator | Pending Evaluation | — |
+| **QA Lead / Student** | Hrushikesh Karnam | Submitted by Project Team | 02-Nov-2026 |
+| **Test Engineer / Student** | Muruli H | Submitted by Project Team | 02-Nov-2026 |
+| **Developer Lead / Student** | Mandagandla Jhansi | Submitted by Project Team | 02-Nov-2026 |
+| **Support Lead / Student** | Neeta R | Submitted by Project Team | 02-Nov-2026 |
+| **Course Coordinator / Evaluator** | Mini-Project Evaluator | Pending Course Evaluator Review | — |

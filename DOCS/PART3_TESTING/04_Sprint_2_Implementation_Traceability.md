@@ -98,7 +98,7 @@ Sprint 2 introduced six significant functional and security capabilities that ex
 
 ### 5. Duplicate Patient and Doctor Identity Validation (`HMS-F-001/008-EXT` / `TC-ID-01`)
 - **Originating PR:** PR #125 (Issue #124).
-- **Rationale:** Duplicate ID rejection prevents identical IDs, but did not prevent registering the same human twice under different IDs (e.g., `P001` John Doe `9876543210` and `P002` John Doe `9876543210`). PR #125 introduced identity heuristic checks on normalized name and contact number. If a potential duplicate is detected, a warning displays the existing ID and asks for explicit confirmation (`Y/N`) before proceeding.
+- **Rationale:** Duplicate ID rejection prevents identical IDs, but did not prevent registering the same human twice under different IDs (e.g., `P001` John Doe `9876543210` and `P002` John Doe `9876543210`). PR #125 introduced identity heuristic checks: patient identity is evaluated by normalized name and contact number (address is not evaluated); doctor identity is evaluated by normalized name, contact number, and specialization (department is not evaluated). If a potential duplicate is detected, a warning displays the existing ID and asks for explicit confirmation (`Proceed with registration? (Y/N): `) before proceeding. Entering 'N' cancels registration leaving CSV files byte-identical; entering 'Y' completes registration.
 - **Automated Target:** `TC-ID-01_DuplicateIdentityValidation` in `tests/test_duplicate_identity_validation.cpp`.
 
 ### 6. Universal Immediate Field-Level Validation & Retry Handling (`HMS-F-003/010/018-EXT` / `TC-VAL-01`)

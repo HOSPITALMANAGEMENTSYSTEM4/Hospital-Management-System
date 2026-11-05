@@ -96,5 +96,5 @@ DOCS/
 
 | Version | Date | Author(s) | Description of Changes |
 |:---|:---|:---|:---|
-| **1.0** | 20-Oct-2026 | QA Team | Initial Software Test Plan (STP-HMS-2026-V1.0) baseline with 54 requirements and 10 representative test cases. |
-| **2.0** | 02-Nov-2026 | QA Team & Requirements Analysts | Comprehensive Deliverable Part-3 update. Expanded test specifications from 10 representative cases to 60 exhaustive test specifications (54 baseline + 6 supplementary sprint cases). Mapped all Sprint 1 and Sprint 2 merged PRs (#60–#127) to requirements, CTest targets, and source files. Updated RTM with Part A (Baseline) and Part B (Sprint Extensions). Documented all traceability discrepancies and testing gaps. |
+| **1.0** | 20-Oct-2026 | QA Team | Initial Software Test Plan (STP-HMS-2026-V1.0) baseline with 54 requirements and 10 representative test cases. *(Note: PDF cover page printed as '20 November 2026'; internal revision records cite 20-Oct-2026).* |
+| **2.0** | 02-Nov-2026 | QA Team & Requirements Analysts | Comprehensive Deliverable Part-3 update. Expanded test specifications from 10 representative cases to 60 exhaustive test specifications (54 baseline + 6 supplementary sprint cases). Mapped all Sprint 1 and Sprint 2 merged PRs (#60–#127) to requirements, CTest targets, and source files. Updated RTM with Part A (Baseline) and Part B (Sprint Extensions). Documented all traceability discrepancies and testing gaps. Status: Pending Course Evaluator Review. |

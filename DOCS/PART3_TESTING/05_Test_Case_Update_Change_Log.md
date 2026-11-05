@@ -13,6 +13,8 @@
 
 This Change Log records every change made to the original Software Test Plan (STP v1.0) test specifications during the evolution of the Hospital Management System across Sprint 1 and Sprint 2.
 
+*Baseline Date Note:* On the title page of the baseline Software Test Plan PDF (`DOCS/Software_Test_Plan.pdf`), the document date is printed as "Date: 20 November 2026". However, its internal document control table, revision history, and all subsequent Sprint 1 and Sprint 2 reports consistently establish its creation date as 20 October 2026. This updated document maintains traceability to that October 2026 baseline.
+
 The original STP defined **54 baseline requirements** (36 Functional, 10 Non-Functional, 8 Security) mapped to 54 test case entries in Table 7, with 10 representative detailed test specifications. During implementation, several original test cases were enhanced to validate advanced edge cases (e.g., case-insensitive matching, whitespace trimming, immediate field-level retry, non-destructive writes), and **6 supplementary test suites** were created to validate capabilities outside the frozen baseline.
 
 This document classifies every requirement and test case into one of five rigorous QA categories:
@@ -135,10 +137,10 @@ This document classifies every requirement and test case into one of five rigoro
 | `HMS-SR-002` | `TC-SEC-02` | `TC-SEC-02` | **Category A** | **Unchanged:** Rejects delimiter and formula injection characters (`,`, `\r`, `\n`, `=`, `+`, `-`, `@`). | PR #110 (Issue #48) |
 | `HMS-SR-003` | `TC-SEC-03` | `TC-SEC-03` | **Category A** | **Unchanged:** Buffer safety: tests 10,000+ character inputs to guarantee zero memory corruption or crashes. | PR #111 (Issue #49) |
 | `HMS-SR-004` | `TC-SEC-04` | `TC-SEC-04` | **Category B** | **Enhanced (Discrepancy Note):** Untrusted CSV data validation. Exercised via `TC-PER-03_SkipMalformedCSV` and `TC-NFR-02_RobustStartup`. | PR #112 (Issue #50) |
-| `HMS-SR-005` | `TC-PER-07` | `TC-SEC-05` | **Category B** | **Enhanced:** Non-destructive atomic file writes: verified via `TC-PER-07_HandleCSVWriteFailures` and PR #113 snapshot semantics. | PR #113 (Issue #51) |
-| `HMS-SR-006` | `TC-APT-09` | `TC-SEC-06` | **Category A** | **Unchanged:** Audit non-deletion: cancelled appointments retained in CSV with status `Cancelled`. In CTest: `TC-SEC-06_RetainCancelledAppointmentRecords`. | PR #114 (Issue #52) |
+| `HMS-SR-005` | `TC-PER-07` | `TC-PER-07` | **Category B** | **Enhanced:** Non-destructive atomic file writes: official STP test ID is `TC-PER-07` (alias `TC-SEC-05` in sprint notes). Atomic non-destructive write logic verified via `TC-PER-07_HandleCSVWriteFailures` (PR #113). | PR #113 (Issue #51) |
+| `HMS-SR-006` | `TC-APT-09` | `TC-APT-09` | **Category A** | **Unchanged:** Audit non-deletion: cancelled appointments retained in CSV with status `Cancelled`. Official STP test ID is `TC-APT-09` (alias `TC-SEC-06`). Dedicated security CTest target `TC-SEC-06_RetainCancelledAppointmentRecords` added in PR #114. | PR #114 (Issue #52) |
 | `HMS-SR-007` | `TC-SEC-07` | `TC-SEC-07` | **Category A** | **Unchanged:** Patient privacy minimization: conceals address, phone, and medical history from appointment views. | PR #115 (Issue #53) |
-| `HMS-SR-008` | `TC-NFR-09` | `TC-SEC-08` | **Category A** | **Unchanged:** Air-gapped offline operation: verifies zero network sockets or network transmission. Hardened via PR #116. | PR #105, #116 (Issue #43, #54) |
+| `HMS-SR-008` | `TC-NFR-09` | `TC-NFR-09` | **Category A** | **Unchanged:** Air-gapped offline operation: official STP test ID is `TC-NFR-09` (alias `TC-SEC-08`). Verified via objdump network symbol inspection in `test_standalone_offline.cmake` (`TC-NFR-09_StandaloneOffline`). Hardened via PR #116. | PR #105, #116 (Issue #43, #54) |
 
 ---
 
@@ -146,12 +148,12 @@ This document classifies every requirement and test case into one of five rigoro
 
 | Scope ID | Associated Test ID | Category | Implementation & Testing Details | Merged PR / Issue |
 |:---|:---:|:---:|:---|:---:|
-| **HMS-SR-009** | `TC-SEC-09` | **Category D** | **Sanitize Error Messages:** Error messages omit raw filesystem paths, exception traces, or raw file lines. In CTest: `TC-SEC-09_SanitizeErrorMessages`. | PR #117 (Issue #55) |
-| **HMS-SR-010** | `TC-SEC-10` | **Category D** | **Restrict Data Directory:** Restricts file I/O strictly to designated data directory, preventing directory traversal. In CTest: `TC-SEC-10_RestrictDataDirectory`. | PR #118 (Issue #56) |
-| **HMS-F-023-EXT** | `TC-APT-11` | **Category C** | **Cancellation Confirmation Workflow:** Displays appointment summary before asking for confirmation (`Y/N`). Retries invalid confirmation. | PR #122 (Issue #120) |
-| **HMS-F-022-EXT** | `TC-APT-12` | **Category C** | **Appointment Filtering Entity Existence:** Validates patient/doctor existence when filtering. Nonexistent entity displays `"Patient not found"` / `"Doctor not found"`. In CTest: `TC-APT-12_FilterUnknownEntity`. | PR #123 (Issue #121) |
-| **HMS-F-001/008-EXT**| `TC-ID-01` | **Category C** | **Duplicate Identity Heuristics:** Detects duplicate individuals (name, contact, address/dept) and requests confirmation before saving. In CTest: `TC-ID-01_DuplicateIdentityValidation`. | PR #125 (Issue #124) |
-| **HMS-F-003/010/018-EXT**| `TC-VAL-01` | **Category B / C** | **Immediate Field Validation & Retry:** Prompts for immediate retry of invalid field without aborting the entire form. | PR #127 (Issue #119) |
+| **HMS-SR-009** | `TC-SEC-09` | **Category D** | **Supplementary Project Scope ID (Not in baseline STP): Sanitize Error Messages:** Error messages omit raw filesystem paths, exception traces, or raw file lines. In CTest: `TC-SEC-09_SanitizeErrorMessages`. | PR #117 (Issue #55) |
+| **HMS-SR-010** | `TC-SEC-10` | **Category D** | **Supplementary Project Scope ID (Not in baseline STP): Restrict Data Directory:** Restricts file I/O strictly to designated data directory, preventing directory traversal. In CTest: `TC-SEC-10_RestrictDataDirectory`. | PR #118 (Issue #56) |
+| **HMS-F-023-EXT** | `TC-APT-11` | **Category C** | **Supplementary Project Scope ID (Not in baseline STP): Cancellation Confirmation Workflow:** Displays appointment summary before asking for confirmation (`Y/N`). Retries invalid confirmation. | PR #122 (Issue #120) |
+| **HMS-F-022-EXT** | `TC-APT-12` | **Category C** | **Supplementary Project Scope ID (Not in baseline STP): Appointment Filtering Entity Existence:** Validates patient/doctor existence when filtering. Nonexistent entity displays `"Patient not found"` / `"Doctor not found"`. In CTest: `TC-APT-12_FilterUnknownEntity`. | PR #123 (Issue #121) |
+| **HMS-F-001/008-EXT**| `TC-ID-01` | **Category C** | **Supplementary Project Scope ID (Not in baseline STP): Duplicate Identity Heuristics:** Detects duplicate individuals (patient: name+contact; doctor: name+contact+specialization) and requests confirmation before saving. In CTest: `TC-ID-01_DuplicateIdentityValidation`. | PR #125 (Issue #124) |
+| **HMS-F-003/010/018-EXT**| `TC-VAL-01` | **Category B / C** | **Supplementary Project Scope ID (Not in baseline STP): Immediate Field Validation & Retry:** Prompts for immediate retry of invalid field without aborting the entire form. | PR #127 (Issue #119) |
 
 ---
 

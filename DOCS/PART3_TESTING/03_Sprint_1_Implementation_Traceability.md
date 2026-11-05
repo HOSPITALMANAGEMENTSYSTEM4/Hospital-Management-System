@@ -22,7 +22,7 @@ This document details every merged PR and closed issue during Sprint 1, identifi
 
 ## 2. Sprint 1 Boundary & Evidence Verification
 
-The boundaries of Sprint 1 were established using repository commit history, pull request merge timestamps, and the official project submission document [`DOCS/SPRINT1_DELEVERABLES/SPRINT1_SUBMISSION.md`](file:///C:/Users/hp/Desktop/SE_grp/DOCS/SPRINT1_DELEVERABLES/SPRINT1_SUBMISSION.md):
+The boundaries of Sprint 1 were established using repository commit history, pull request merge timestamps, and the official project submission document [`DOCS/SPRINT1_DELEVERABLES/SPRINT1_SUBMISSION.md`](../SPRINT1_DELEVERABLES/SPRINT1_SUBMISSION.md):
 - **Sprint Start:** 19 October 2026 07:34 UTC (PR #60 merged).
 - **Sprint End:** 23 October 2026 14:08 UTC (PR #90 merged).
 - **Final Test Target Count in Sprint 1:** 24 CTest test targets (confirmed in PR #90 and `SPRINT1_SUBMISSION.md`).
